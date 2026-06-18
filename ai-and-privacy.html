@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI &amp; Your Privacy — An Interactive Guide for Students</title>
+<meta name="description" content="An interactive classroom guide to protecting your privacy when using AI tools: enterprise-protected accounts, turning off ChatGPT data harvesting, a hands-on awareness assignment, and a dialogue about why data privacy matters. Built by Marc Watkins." />
+
+<!-- React (UMD) + Babel for in-browser JSX. Loads from CDN; needs internet on first open. -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+<style>
+  :root{
+    /* Palette echoes the "AI and Privacy" poster: dark teal + neon */
+    --bg:#0a201f;
+    --bg-2:#0d2926;
+    --panel:#0f2e2b;
+    --panel-2:#143a36;
+    --ink:#eafffb;
+    --ink-soft:#b6e4dc;
+    --ink-dim:#6fa39c;
+    --line:rgba(120,255,225,.12);
+    --line-2:rgba(120,255,225,.24);
+
+    --pink:#ff5fa2;     /* harvest / warning  */
+    --cyan:#46e0ff;     /* data / cool        */
+    --green:#5dffa0;    /* protected / safe    */
+    --violet:#8b9cff;   /* model / flow        */
+    --amber:#ffd27a;    /* highlight / counts  */
+
+    --radius:18px;
+    --shadow:0 18px 50px rgba(0,0,0,.5);
+    --font:'Inter',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --read:'Georgia',"Iowan Old Style",'Times New Roman',serif;
+  }
+
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 640px at 16% -10%, rgba(70,224,255,.16), transparent 60%),
+      radial-gradient(1000px 680px at 100% 0%, rgba(255,95,162,.14), transparent 55%),
+      radial-gradient(900px 720px at 50% 120%, rgba(93,255,160,.10), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    line-height:1.55;
+  }
+  a{color:#8fe9ff}
+  button{font-family:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 20px 90px}
+
+  /* ---------- Header ---------- */
+  header.site{text-align:center;padding:14px 0 6px}
+  .kicker{letter-spacing:.34em;text-transform:uppercase;font-size:12px;color:var(--ink-dim);font-weight:700;margin-bottom:12px}
+  h1.title{font-size:clamp(32px,6.4vw,60px);line-height:1.0;margin:0;font-weight:800;letter-spacing:-.02em}
+  h1.title .a{color:#ff8fc4;text-shadow:0 0 24px rgba(255,95,162,.6)}
+  h1.title .b{color:#9af0ff;text-shadow:0 0 24px rgba(70,224,255,.5)}
+  .lede{max-width:700px;margin:16px auto 0;color:var(--ink-soft);font-size:17px}
+  .attribution{
+    margin:18px auto 0;max-width:780px;font-size:13px;color:var(--ink-dim);
+    background:rgba(120,255,225,.04);border:1px solid var(--line);border-radius:12px;padding:11px 16px;
+  }
+  .attribution a{color:#8fe9ff;text-decoration:underline;text-underline-offset:2px}
+
+  /* AI disclosure chip — transparent label */
+  .ai-chip{
+    display:inline-flex;align-items:center;gap:8px;margin:16px auto 0;font-size:12px;font-weight:700;
+    color:#bfeee6;background:rgba(70,224,255,.08);border:1px solid var(--line-2);border-radius:999px;padding:7px 14px;
+    letter-spacing:.02em;
+  }
+  .ai-chip .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--green));box-shadow:0 0 10px var(--cyan)}
+
+  /* ---------- Sticky nav ---------- */
+  .nav{
+    position:sticky;top:0;z-index:30;margin:24px 0 8px;
+    background:rgba(10,32,31,.82);backdrop-filter:blur(10px);
+    border:1px solid var(--line);border-radius:14px;padding:8px;
+    display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+  }
+  .nav button{
+    cursor:pointer;border:1px solid transparent;background:transparent;color:var(--ink-soft);
+    border-radius:10px;padding:8px 13px;font-weight:600;font-size:13.5px;transition:.15s;display:flex;align-items:center;gap:7px;
+  }
+  .nav button:hover{background:rgba(120,255,225,.07);color:var(--ink)}
+  .nav button.on{background:rgba(120,255,225,.12);border-color:var(--line-2);color:var(--ink)}
+  .nav .nnum{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;background:rgba(120,255,225,.14);font-weight:800}
+
+  /* ---------- Cards / sections ---------- */
+  section.block{
+    background:linear-gradient(180deg,var(--panel),var(--bg-2));
+    border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:26px 24px;margin:22px 0;scroll-margin-top:74px;
+  }
+  .sec-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+  .sec-num{flex:none;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-weight:800;font-size:17px;
+    background:rgba(70,224,255,.12);border:1px solid var(--line-2);color:#9af0ff}
+  .sec-head h2{margin:0;font-size:23px;letter-spacing:-.01em}
+  .sec-head p.sub{margin:5px 0 0;color:var(--ink-soft);font-size:15px}
+
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;border-radius:999px;padding:5px 11px;border:1px solid var(--line-2)}
+  .pill.safe{color:#aaffce;background:rgba(93,255,160,.10)}
+  .pill.warn{color:#ffb3d2;background:rgba(255,95,162,.10)}
+
+  /* tool cards */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  @media (max-width:720px){.grid2{grid-template-columns:1fr}}
+  .tool{border:1px solid var(--line);border-radius:14px;padding:18px;background:rgba(255,255,255,.02);position:relative;overflow:hidden}
+  .tool.protected{border-color:rgba(93,255,160,.35);box-shadow:0 0 0 1px rgba(93,255,160,.10),0 14px 40px rgba(0,0,0,.35)}
+  .tool .tool-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .tool h3{margin:0;font-size:17px}
+  .tool .logo{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:18px;flex:none}
+  .tool p{margin:8px 0 0;color:var(--ink-soft);font-size:14px}
+  .tool ul{margin:10px 0 0;padding-left:18px;color:var(--ink-soft);font-size:13.5px}
+  .tool ul li{margin:4px 0}
+  .ribbon{position:absolute;top:13px;right:-34px;transform:rotate(45deg);font-size:10px;font-weight:800;letter-spacing:.08em;
+    padding:4px 40px;background:linear-gradient(135deg,var(--green),var(--cyan));color:#06231d}
+
+  .callout{border-left:3px solid var(--amber);background:rgba(255,210,122,.07);border-radius:0 12px 12px 0;padding:12px 16px;margin-top:16px;font-size:14px;color:var(--ink-soft)}
+  .callout strong{color:#ffe2b0}
+
+  /* opt-out checklist */
+  .steps-list{list-style:none;padding:0;margin:16px 0 0;counter-reset:s}
+  .steps-list li{
+    display:flex;gap:13px;align-items:flex-start;padding:13px 14px;margin:9px 0;border-radius:12px;
+    border:1px solid var(--line);background:rgba(255,255,255,.02);cursor:pointer;transition:.15s;
+  }
+  .steps-list li:hover{border-color:var(--line-2);background:rgba(120,255,225,.05)}
+  .steps-list li.done{border-color:rgba(93,255,160,.4);background:rgba(93,255,160,.07)}
+  .check{flex:none;width:26px;height:26px;border-radius:8px;border:2px solid var(--line-2);display:grid;place-items:center;font-size:15px;color:transparent;transition:.15s;margin-top:1px}
+  .steps-list li.done .check{background:var(--green);border-color:var(--green);color:#06231d}
+  .step-body strong{display:block;font-size:15px;margin-bottom:2px}
+  .step-body span{color:var(--ink-soft);font-size:13.5px}
+  .progress-wrap{margin-top:16px}
+  .bar{height:9px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));transition:width .35s;border-radius:999px}
+  .progress-label{font-size:13px;color:var(--ink-dim);margin-top:7px;font-weight:600}
+
+  /* compare reveal */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  @media (max-width:720px){.compare{grid-template-columns:1fr}}
+  .device{border-radius:16px;border:1px solid var(--line);overflow:hidden;background:#08191a}
+  .device.enter{border-color:rgba(93,255,160,.35)}
+  .device.personal{border-color:rgba(255,95,162,.35)}
+  .device .bar-top{display:flex;align-items:center;gap:6px;padding:9px 12px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line);font-size:12px;font-weight:700;color:var(--ink-soft)}
+  .device .bar-top i{width:9px;height:9px;border-radius:50%}
+  .device .screen{padding:15px;min-height:160px}
+  .bubble{background:rgba(255,255,255,.05);border-radius:12px;padding:11px 13px;font-size:13.5px;color:var(--ink-soft);margin:8px 0}
+  .bubble.me{background:rgba(70,224,255,.10);text-align:right}
+  .reveal-line{font-size:13px;color:var(--ink-dim);margin:5px 0;opacity:0;transform:translateY(6px);transition:.4s}
+  .reveal-line.show{opacity:1;transform:none}
+  .reveal-line b{color:#ffb3d2}
+
+  /* feeling slider */
+  .feel{margin-top:18px}
+  .feel input[type=range]{width:100%;accent-color:var(--pink);height:6px}
+  .feel-readout{text-align:center;font-size:15px;font-weight:700;margin-top:12px;min-height:24px}
+  .feel-scale{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-dim);margin-top:4px}
+
+  /* reflection inputs */
+  label.fld{display:block;margin-top:16px}
+  label.fld > span{display:block;font-size:14px;font-weight:600;color:var(--ink);margin-bottom:7px}
+  textarea,input.txt{
+    width:100%;border:1px solid var(--line-2);background:rgba(0,0,0,.28);color:var(--ink);
+    border-radius:12px;padding:12px 14px;font-size:15px;font-family:var(--read);line-height:1.5;resize:vertical;
+  }
+  textarea{min-height:84px}
+  textarea:focus,input.txt:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(70,224,255,.15)}
+
+  /* readings + advice */
+  .reading{display:flex;gap:13px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .reading:last-child{border-bottom:none}
+  .reading .rdot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:7px;background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+  .reading a{font-weight:700;font-size:15px}
+  .reading p{margin:3px 0 0;color:var(--ink-soft);font-size:13.5px}
+  .reading .src{color:var(--ink-dim);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+  .toggle-tabs{display:inline-flex;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:4px;margin-top:6px}
+  .toggle-tabs button{cursor:pointer;border:none;background:transparent;color:var(--ink-soft);font-weight:700;font-size:14px;padding:8px 18px;border-radius:9px;transition:.15s}
+  .toggle-tabs button.on{background:linear-gradient(135deg,var(--cyan),var(--green));color:#06231d}
+  .advice-list{margin:16px 0 0;padding-left:0;list-style:none}
+  .advice-list li{display:flex;gap:11px;padding:9px 0;color:var(--ink-soft);font-size:14.5px;border-bottom:1px solid var(--line)}
+  .advice-list li:last-child{border-bottom:none}
+  .advice-list .ai{flex:none;color:var(--green);font-weight:800}
+
+  /* buttons */
+  .btn{cursor:pointer;border:1px solid var(--line-2);background:rgba(120,255,225,.06);color:var(--ink);border-radius:12px;padding:12px 20px;font-weight:700;font-size:15px;transition:.15s}
+  .btn:hover{background:rgba(120,255,225,.13);transform:translateY(-1px)}
+  .btn.primary{border:none;background:linear-gradient(135deg,var(--cyan) 0%,var(--green) 100%);color:#06231d;box-shadow:0 10px 30px rgba(70,224,255,.28)}
+  .btn.ghost{background:transparent}
+  .btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+
+  .saved-pill{position:fixed;bottom:16px;right:16px;font-size:12px;color:var(--ink-dim);background:rgba(10,32,31,.9);border:1px solid var(--line);border-radius:999px;padding:6px 12px;z-index:40}
+
+  footer.site{margin-top:44px;border-top:1px solid var(--line);padding-top:22px;text-align:center;color:var(--ink-dim);font-size:13px}
+  footer.site a{color:#8fe9ff}
+  .disclosure{max-width:720px;margin:14px auto 0;font-size:12px;color:var(--ink-dim);font-style:italic;line-height:1.6}
+
+  /* ---------- Hero viz ---------- */
+  .hero{position:relative;margin:22px auto 0;max-width:920px}
+  .hero-toggle{display:flex;justify-content:center;gap:10px;margin-bottom:8px}
+  .hero-toggle button{cursor:pointer;border:1px solid var(--line-2);background:rgba(0,0,0,.25);color:var(--ink-soft);border-radius:999px;padding:9px 18px;font-weight:700;font-size:14px;transition:.15s;display:flex;align-items:center;gap:8px}
+  .hero-toggle button.on.harvest{border-color:var(--pink);color:#ffc4dd;background:rgba(255,95,162,.12)}
+  .hero-toggle button.on.safe{border-color:var(--green);color:#bdffd9;background:rgba(93,255,160,.12)}
+  .hero svg{width:100%;height:auto;display:block;border-radius:16px;border:1px solid var(--line);background:radial-gradient(700px 300px at 50% 0%,rgba(70,224,255,.08),transparent 70%),#08191a}
+  .hero-caption{text-align:center;font-size:14.5px;margin-top:10px;font-weight:600;min-height:22px}
+  .flow-dot{transition:opacity .3s}
+
+  @media print{
+    body{background:#fff;color:#111}
+    .no-print{display:none !important}
+    .wrap{max-width:none;padding:0}
+    section.block{box-shadow:none;border:1px solid #ccc;break-inside:avoid;background:#fff}
+    h1.title .a,h1.title .b{color:#111;text-shadow:none}
+    a{color:#1a4b8c}
+    .device,.tool,.bubble{background:#fff;color:#111}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+/* ============================ DATA ============================ */
+
+const NAV = [
+  {id:"start",    n:"·", label:"Start"},
+  {id:"sec1",     n:"1", label:"Protected accounts"},
+  {id:"sec2",     n:"2", label:"Turn off harvesting"},
+  {id:"sec3",     n:"3", label:"Try it yourself"},
+  {id:"sec4",     n:"4", label:"Why it matters"},
+  {id:"readings", n:"+", label:"Deep dives"},
+  {id:"advice",   n:"✎", label:"Advice"},
+  {id:"export",   n:"⬇", label:"Save / Export"},
+];
+
+const ENTERPRISE = [
+  {
+    key:"copilot", name:"Microsoft Copilot", logo:"⊞", color:"#46e0ff", available:true,
+    blurb:"Sign in with your university Microsoft account (not a personal Microsoft login).",
+    points:[
+      "Covered by the university's enterprise data-protection agreement",
+      "Your prompts and files are not used to train the underlying models",
+      "Data stays inside the institution's protected boundary",
+    ],
+  },
+  {
+    key:"gemini", name:"Google Gemini", logo:"✦", color:"#5dffa0", available:false,
+    blurb:"Coming soon for your university Google Workspace account.",
+    points:[
+      "Will be covered by the same kind of enterprise agreement",
+      "Enterprise Workspace prompts are not used to train models",
+      "Use your school Google account once it's enabled — not a personal Gmail",
+    ],
+  },
+];
+
+const OPTOUT_STEPS = [
+  {id:"o1", t:"Open ChatGPT settings", d:"Click your name/profile (bottom-left or top-right) → Settings."},
+  {id:"o2", t:"Go to Data Controls", d:"Find the “Data Controls” section in the settings menu."},
+  {id:"o3", t:"Turn OFF “Improve the model for everyone”", d:"Toggle this off so your conversations aren't used for training. (Wording may vary by version.)"},
+  {id:"o4", t:"Use Temporary Chat for sensitive prompts", d:"The ghost/clock icon starts a chat that isn't saved to history or used for training."},
+  {id:"o5", t:"Know the trade-off", d:"Turning training off doesn't reduce quality for you — it just stops your content from teaching the model. You can still keep chat history."},
+];
+
+const READINGS = [
+  {title:"Data Controls FAQ", src:"OpenAI Help Center", why:"The official explanation of what the training toggle does and how to submit a privacy request.", url:"https://help.openai.com/en/articles/7730893-data-controls-faq"},
+  {title:"Data, privacy & security for Microsoft 365 Copilot", src:"Microsoft Learn", why:"How enterprise Copilot handles your data and why it isn't used to train foundation models.", url:"https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-privacy"},
+  {title:"Gemini for Google Workspace — your data", src:"Google Workspace", why:"How enterprise Gemini treats Workspace data differently from a personal account.", url:"https://support.google.com/a/answer/15706919"},
+  {title:"Privacy in an AI Era: How Do We Protect Our Personal Information?", src:"Stanford HAI", why:"A clear, research-grounded look at why AI changes the privacy stakes.", url:"https://hai.stanford.edu/news/privacy-ai-era-how-do-we-protect-our-personal-information"},
+  {title:"*Privacy Not Included", src:"Mozilla Foundation", why:"Plain-language reviews of how AI products and apps actually use your data.", url:"https://foundation.mozilla.org/en/privacynotincluded/"},
+  {title:"Privacy issues", src:"Electronic Frontier Foundation", why:"Background on data collection, consent, and digital rights from a leading nonprofit.", url:"https://www.eff.org/issues/privacy"},
+  {title:"Privacy in Context (contextual integrity)", src:"Helen Nissenbaum", why:"The framework behind “it depends who's sharing what, with whom, for what purpose” — perfect for the reframe in Section 4.", url:"https://nissenbaum.tech.cornell.edu/projects.html"},
+];
+
+const ADVICE = {
+  student:[
+    "Default to your university's enterprise AI for anything school-related — it's already protected.",
+    "Turn off training in your personal ChatGPT, and use Temporary Chat for anything sensitive.",
+    "Don't paste other people's work — a classmate's draft, a professor's unpublished materials — into a personal AI account.",
+    "Before uploading anything, ask: would I be comfortable if this became part of a model millions of people query?",
+    "Read the data-controls page of any AI tool before you trust it with personal information.",
+  ],
+  faculty:[
+    "Point students to enterprise-protected accounts first; make it the path of least resistance.",
+    "Teach the opt-out, don't assume it — most students don't know the training toggle exists.",
+    "Run the awareness assignment (Section 3) early; the “shock” is what makes the lesson stick.",
+    "Model consent: don't put student writing into a personal AI account to summarize or grade it.",
+    "Frame privacy as a shared value, not a rule — use the reframe question to open the conversation.",
+    "Check your institution's specific agreement and IT guidance before making promises about protection.",
+  ],
+};
+
+const STORE_KEY = "aiprivacy.v1";
+
+/* ============================ HELPERS ============================ */
+const load = () => { try{return JSON.parse(localStorage.getItem(STORE_KEY))||{}}catch(e){return {}} };
+const esc = s => (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* ============================ HERO VISUAL ============================ */
+function Hero(){
+  const [mode,setMode] = useState("harvest"); // harvest | safe
+  const harvest = mode==="harvest";
+  const flow = harvest ? "#ff5fa2" : "#5dffa0";
+
+  return (
+    <div className="hero no-print">
+      <div className="hero-toggle">
+        <button className={"harvest "+(harvest?"on harvest":"")} onClick={()=>setMode("harvest")}>👤 Personal account</button>
+        <button className={"safe "+(!harvest?"on safe":"")} onClick={()=>setMode("safe")}>🛡 Enterprise account</button>
+      </div>
+      <svg viewBox="0 0 920 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of how your data flows to an AI model">
+        <defs>
+          <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="path" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#46e0ff"/><stop offset="1" stopColor={flow}/>
+          </linearGradient>
+        </defs>
+
+        {/* connecting paths */}
+        <path id="p1" d="M150 160 C 300 160, 330 160, 430 160" fill="none" stroke="url(#path)" strokeWidth="2.5" opacity=".55"/>
+        <path id="p2" d="M490 160 C 600 160, 640 160, 770 160" fill="none" stroke={flow} strokeWidth="2.5" opacity=".55"/>
+
+        {/* animated packets in */}
+        {[0,1,2].map(i=>(
+          <circle key={"a"+i} r="5" fill="#9af0ff" filter="url(#glow)" className="flow-dot">
+            <animateMotion dur="2.6s" begin={i*0.85+"s"} repeatCount="indefinite"><mpath href="#p1"/></animateMotion>
+          </circle>
+        ))}
+        {/* animated packets out */}
+        {[0,1,2].map(i=>(
+          <circle key={"b"+i} r="5" fill={flow} filter="url(#glow)" className="flow-dot" opacity={harvest?1:.9}>
+            <animateMotion dur="2.6s" begin={i*0.85+1.2+"s"} repeatCount="indefinite"><mpath href="#p2"/></animateMotion>
+          </circle>
+        ))}
+
+        {/* YOU */}
+        <g transform="translate(70,120)">
+          <rect width="80" height="80" rx="14" fill="#0f2e2b" stroke="#46e0ff" strokeWidth="1.6" filter="url(#glow)"/>
+          <circle cx="40" cy="30" r="13" fill="none" stroke="#9af0ff" strokeWidth="2.4"/>
+          <path d="M18 64 a22 18 0 0 1 44 0" fill="none" stroke="#9af0ff" strokeWidth="2.4"/>
+        </g>
+        <text x="110" y="225" textAnchor="middle" fill="#b6e4dc" fontSize="13" fontWeight="700" fontFamily="Inter,sans-serif">You + your prompts</text>
+
+        {/* GATEWAY (lock) */}
+        <g transform="translate(420,110)">
+          <rect width="80" height="100" rx="14" fill="#0d2926" stroke={flow} strokeWidth="2" filter="url(#glow)"/>
+          <rect x="24" y="46" width="32" height="26" rx="5" fill="none" stroke={flow} strokeWidth="2.6"/>
+          <path d={harvest ? "M28 46 v-8 a12 12 0 0 1 24 0 v2" : "M28 46 v-10 a12 12 0 0 1 24 0 v10"} fill="none" stroke={flow} strokeWidth="2.6"/>
+          {!harvest && <circle cx="40" cy="58" r="3.4" fill={flow}/>}
+        </g>
+        <text x="460" y="232" textAnchor="middle" fill="#b6e4dc" fontSize="12.5" fontWeight="700" fontFamily="Inter,sans-serif">
+          {harvest ? "Personal account gateway" : "Enterprise-protected gateway"}
+        </text>
+
+        {/* DESTINATION */}
+        <g transform="translate(760,110)">
+          <rect width="100" height="100" rx="16" fill="#0f2e2b" stroke={flow} strokeWidth="1.8" filter="url(#glow)"/>
+          {/* brain-ish chip */}
+          <g stroke={flow} strokeWidth="2" fill="none" opacity=".95">
+            <circle cx="50" cy="50" r="26"/>
+            <path d="M50 24 v52 M24 50 h52 M32 32 l36 36 M68 32 l-36 36"/>
+          </g>
+          <circle cx="50" cy="50" r="7" fill={flow} filter="url(#glow)"/>
+        </g>
+        <text x="810" y="232" textAnchor="middle" fill="#b6e4dc" fontSize="13" fontWeight="700" fontFamily="Inter,sans-serif">AI model</text>
+
+        {/* verdict banner */}
+        <text x="460" y="290" textAnchor="middle" fontSize="15.5" fontWeight="800" fontFamily="Inter,sans-serif"
+              fill={harvest?"#ff8fc4":"#9fffcb"}>
+          {harvest
+            ? "⚠  Your prompts may be stored and used to train the model"
+            : "✓  Your prompts stay private — not used for training"}
+        </text>
+      </svg>
+      <div className="hero-caption" style={{color:harvest?"#ffb3d2":"#bdffd9"}}>
+        {harvest
+          ? "On a personal account, what you type can become training data for everyone."
+          : "On a university enterprise account, your words stay inside the protected boundary."}
+      </div>
+    </div>
+  );
+}
+
+/* ============================ SECTION WRAP ============================ */
+function Section({id,num,title,sub,children}){
+  return (
+    <section className="block" id={id}>
+      <div className="sec-head">
+        <div className="sec-num">{num}</div>
+        <div>
+          <h2>{title}</h2>
+          {sub && <p className="sub">{sub}</p>}
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/* ============================ APP ============================ */
+function App(){
+  const saved = load();
+  const [name,setName]           = useState(saved.name||"");
+  const [done,setDone]           = useState(saved.done||{});          // opt-out checklist
+  const [revealed,setRevealed]   = useState(false);
+  const [enterAns,setEnterAns]   = useState(saved.enterAns||"");
+  const [personalAns,setPersonalAns]= useState(saved.personalAns||"");
+  const [surprise,setSurprise]   = useState(saved.surprise||"");
+  const [feel,setFeel]           = useState(saved.feel!=null?saved.feel:50);
+  const [feelWhy,setFeelWhy]     = useState(saved.feelWhy||"");
+  const [pledge,setPledge]       = useState(saved.pledge||"");
+  const [adviceTab,setAdviceTab] = useState("student");
+  const [active,setActive]       = useState("start");
+  const [savedFlash,setSavedFlash]= useState(false);
+
+  // persist
+  useEffect(()=>{
+    const data={name,done,enterAns,personalAns,surprise,feel,feelWhy,pledge};
+    try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(e){}
+    setSavedFlash(true);const t=setTimeout(()=>setSavedFlash(false),900);return ()=>clearTimeout(t);
+  },[name,done,enterAns,personalAns,surprise,feel,feelWhy,pledge]);
+
+  // scrollspy
+  useEffect(()=>{
+    const obs=new IntersectionObserver(es=>{
+      es.forEach(e=>{if(e.isIntersecting)setActive(e.target.id);});
+    },{rootMargin:"-45% 0px -50% 0px"});
+    NAV.forEach(s=>{const el=document.getElementById(s.id);if(el)obs.observe(el);});
+    return ()=>obs.disconnect();
+  },[]);
+
+  const go = id => {const el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth"});};
+  const toggleStep = id => setDone(d=>({...d,[id]:!d[id]}));
+  const doneCount = OPTOUT_STEPS.filter(s=>done[s.id]).length;
+  const pct = Math.round(doneCount/OPTOUT_STEPS.length*100);
+
+  const feelLabel = (() => {
+    if(feel<=15) return "“Totally fine — I wouldn't mind at all.”";
+    if(feel<=40) return "“A little uneasy, but probably okay.”";
+    if(feel<=60) return "“Mixed — it depends on the why and the how.”";
+    if(feel<=85) return "“Uncomfortable — I'd want to be asked first.”";
+    return "“Not okay — that's my work and my choice.”";
+  })();
+
+  /* ---------- EXPORT ---------- */
+  const exportHTML = () => {
+    const today=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
+    const steps=OPTOUT_STEPS.map(s=>`<li>${done[s.id]?"☑":"☐"} ${esc(s.t)}</li>`).join("");
+    const doc=`<!doctype html><html><head><meta charset="utf-8">
+<title>AI &amp; Your Privacy — ${esc(name||"My Responses")}</title>
+<style>
+body{font-family:Georgia,serif;max-width:740px;margin:40px auto;padding:0 22px;line-height:1.6;color:#16302c}
+h1{font-family:system-ui,sans-serif;font-size:28px;margin-bottom:2px;color:#0c6b58}
+.meta{color:#666;font-family:system-ui,sans-serif;font-size:14px;margin-bottom:26px}
+h2{font-family:system-ui,sans-serif;font-size:18px;margin:28px 0 6px;border-left:5px solid #2bbf9a;padding-left:10px}
+.resp{white-space:pre-wrap;background:#f1faf7;border:1px solid #d6efe8;padding:13px 15px;border-radius:10px;margin:6px 0}
+.empty{color:#999;font-style:italic}
+ul{padding-left:18px}.gauge{font-family:system-ui,sans-serif;font-weight:700}
+footer{margin-top:40px;font-size:12px;color:#888;font-family:system-ui,sans-serif;border-top:1px solid #ddd;padding-top:14px}
+a{color:#0c6b58}
+</style></head><body>
+<h1>AI &amp; Your Privacy</h1>
+<div class="meta">${esc(name||"Anonymous")} · ${today}</div>
+
+<h2>1 · My opt-out checklist (personal ChatGPT)</h2>
+<ul>${steps}</ul>
+
+<h2>2 · What the enterprise AI knew about me</h2>
+<div class="resp ${enterAns?"":"empty"}">${enterAns?esc(enterAns):"(not answered)"}</div>
+
+<h2>3 · What my personal ChatGPT knew about me</h2>
+<div class="resp ${personalAns?"":"empty"}">${personalAns?esc(personalAns):"(not answered)"}</div>
+
+<h2>4 · What surprised me</h2>
+<div class="resp ${surprise?"":"empty"}">${surprise?esc(surprise):"(not answered)"}</div>
+
+<h2>5 · “How would I feel if my professor uploaded MY writing to an AI?”</h2>
+<p class="gauge">My reaction: ${feel}/100 — ${esc(feelLabel.replace(/[“”]/g,'"'))}</p>
+<div class="resp ${feelWhy?"":"empty"}">${feelWhy?esc(feelWhy):"(not answered)"}</div>
+
+<h2>6 · What I'll do differently</h2>
+<div class="resp ${pledge?"":"empty"}">${pledge?esc(pledge):"(not answered)"}</div>
+
+<footer>
+“AI &amp; Your Privacy” — an interactive classroom guide created by Marc Watkins.
+This export was generated from the student's own responses. Built with the help of an AI assistant (Claude).
+</footer>
+</body></html>`;
+    const blob=new Blob([doc],{type:"text/html"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="ai-and-privacy"+(name?"-"+name.replace(/[^a-z0-9]+/gi,"-").toLowerCase():"")+".html";
+    document.body.appendChild(a);a.click();a.remove();
+  };
+
+  const resetAll = () => {
+    if(!window.confirm("Clear all your saved responses on this device?"))return;
+    try{localStorage.removeItem(STORE_KEY);}catch(e){}
+    setName("");setDone({});setEnterAns("");setPersonalAns("");setSurprise("");setFeel(50);setFeelWhy("");setPledge("");
+  };
+
+  return (
+    <div className="wrap">
+      {/* HEADER */}
+      <header className="site" id="start">
+        <div className="kicker">An Interactive Guide for Students</div>
+        <h1 className="title"><span className="a">AI</span> <span className="b">&amp; Your Privacy</span></h1>
+        <p className="lede">When you type into an AI tool, where do your words go — and who gets to keep them?
+          Explore how to use AI without handing over your data, then save your own reflections.</p>
+        <div className="ai-chip"><span className="dot"></span> AI-assisted resource · made transparent on purpose</div>
+        <div className="attribution">
+          Created by <strong>Marc Watkins</strong> for classroom use. This interactive guide was built with the help of an
+          AI assistant (Claude); all guidance reflects the author's framing. Links point to primary sources —
+          verify your own institution's specific agreements with your IT/help desk.
+        </div>
+      </header>
+
+      {/* NAV */}
+      <nav className="nav no-print">
+        {NAV.map(s=>(
+          <button key={s.id} className={active===s.id?"on":""} onClick={()=>go(s.id)}>
+            <span className="nnum">{s.n}</span>{s.label}
+          </button>
+        ))}
+      </nav>
+
+      <Hero/>
+
+      {/* SECTION 1 — Enterprise accounts */}
+      <Section id="sec1" num="1" title="Use the accounts that are already protected"
+        sub="If you're going to use AI for coursework, start here. Your university has enterprise agreements that change the deal entirely.">
+        <p style={{color:"var(--ink-soft)",fontSize:15,marginTop:8}}>
+          Under the university's <strong>enterprise data-protection agreements</strong>, the companies below have agreed
+          <em> not</em> to harvest your prompts to train their models. Same chatbot, very different privacy terms — the
+          difference is which account you sign in with.
+        </p>
+        <div className="grid2">
+          {ENTERPRISE.map(t=>(
+            <div key={t.key} className={"tool "+(t.available?"protected":"")}>
+              {t.available && <div className="ribbon">PROTECTED</div>}
+              <div className="tool-top">
+                <h3>{t.name}</h3>
+                <div className="logo" style={{background:"rgba(255,255,255,.05)",border:"1px solid var(--line-2)",color:t.color}}>{t.logo}</div>
+              </div>
+              <span className={"pill "+(t.available?"safe":"warn")}>
+                {t.available ? "✓ Available now" : "⏳ Coming soon"}
+              </span>
+              <p>{t.blurb}</p>
+              <ul>{t.points.map((p,i)=><li key={i}>{p}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+        <div className="callout">
+          <strong>The catch that matters:</strong> protection comes from signing in with your <em>university</em> account.
+          The exact same tool used through a <em>personal</em> login does not have these protections.
+        </div>
+      </Section>
+
+      {/* SECTION 2 — Turn off harvesting */}
+      <Section id="sec2" num="2" title="Turn off ChatGPT's data harvesting"
+        sub="Using your personal ChatGPT anyway? Most students don't know you can stop OpenAI from training on your conversations. Here's how.">
+        <ul className="steps-list">
+          {OPTOUT_STEPS.map(s=>(
+            <li key={s.id} className={done[s.id]?"done":""} onClick={()=>toggleStep(s.id)}>
+              <span className="check">✓</span>
+              <span className="step-body"><strong>{s.t}</strong><span>{s.d}</span></span>
+            </li>
+          ))}
+        </ul>
+        <div className="progress-wrap">
+          <div className="bar"><i style={{width:pct+"%"}}></i></div>
+          <div className="progress-label">{doneCount} of {OPTOUT_STEPS.length} steps checked · {pct}%</div>
+        </div>
+        <div className="callout">
+          <strong>Note:</strong> menus change as apps update, and this toggle covers your own account going forward —
+          it doesn't reach data already used. For sensitive material, prefer an enterprise account (Section 1) over a
+          personal one with training switched off.
+        </div>
+      </Section>
+
+      {/* SECTION 3 — Try it yourself */}
+      <Section id="sec3" num="3" title="Try it yourself: ask the AI what it knows about you"
+        sub="A short experiment that tends to surprise people. Compare a protected account with your personal one.">
+        <p style={{color:"var(--ink-soft)",fontSize:15,marginTop:6}}>
+          Ask <em>both</em> a university enterprise tool and your personal ChatGPT the same thing:
+          <strong> “What do you know about me?”</strong> Then click below to see the typical result before you write yours.
+        </p>
+
+        <div className="compare">
+          <div className="device enter">
+            <div className="bar-top"><i style={{background:"#5dffa0"}}></i> Enterprise account</div>
+            <div className="screen">
+              <div className="bubble me">What do you know about me?</div>
+              <div className="bubble">I don't have any information about you. I don't retain personal data about who you are.</div>
+              <div className={"reveal-line "+(revealed?"show":"")}><b>→ Knows: nothing.</b> No profile, no memory of you.</div>
+            </div>
+          </div>
+          <div className="device personal">
+            <div className="bar-top"><i style={{background:"#ff5fa2"}}></i> Personal ChatGPT</div>
+            <div className="screen">
+              <div className="bubble me">What do you know about me?</div>
+              <div className="bubble">Based on our past chats, you're a college student studying ___, you've mentioned ___, you tend to ___…</div>
+              <div className={"reveal-line "+(revealed?"show":"")}><b>→ Often knows: a lot.</b> Memory + history can paint a detailed picture.</div>
+            </div>
+          </div>
+        </div>
+        <div className="btn-row no-print" style={{marginTop:16}}>
+          {!revealed && <button className="btn" onClick={()=>setRevealed(true)}>👁 Reveal the typical difference</button>}
+        </div>
+
+        <label className="fld"><span>What did the <strong>enterprise tool</strong> say it knew about you?</span>
+          <textarea value={enterAns} onChange={e=>setEnterAns(e.target.value)} placeholder="e.g. “It said it had no information about me…”"/>
+        </label>
+        <label className="fld"><span>What did your <strong>personal ChatGPT</strong> know about you?</span>
+          <textarea value={personalAns} onChange={e=>setPersonalAns(e.target.value)} placeholder="e.g. “It remembered my major, my projects, things I'd typed weeks ago…”"/>
+        </label>
+        <label className="fld"><span>What surprised you about the difference?</span>
+          <textarea value={surprise} onChange={e=>setSurprise(e.target.value)} placeholder="What stood out? Did anything make you uncomfortable?"/>
+        </label>
+        <div className="callout">
+          <strong>Prefer not to share your accounts?</strong> Opt out of the experiment and instead read one critical piece on
+          data protection from the <a href="#readings" onClick={e=>{e.preventDefault();go("readings");}}>Deep dives</a> below,
+          then summarize what you learned in the boxes above.
+        </div>
+      </Section>
+
+      {/* SECTION 4 — Why it matters */}
+      <Section id="sec4" num="4" title="Why does data privacy actually matter?"
+        sub="It's easy to shrug about uploading a professor's handout. Here's the question that tends to change the conversation.">
+        <div style={{background:"rgba(255,95,162,.07)",border:"1px solid rgba(255,95,162,.25)",borderRadius:14,padding:"18px 20px",marginTop:10}}>
+          <p style={{margin:0,fontSize:18,fontFamily:"var(--read)",color:"#ffd0e3",lineHeight:1.5}}>
+            “How would you feel if <strong>I</strong>, your professor, uploaded <strong>your</strong> writing into one of these
+            AI models to summarize or grade it?”
+          </p>
+        </div>
+        <p style={{color:"var(--ink-soft)",fontSize:15,marginTop:16}}>
+          Most people don't care much about uploading <em>someone else's</em> content — until it's <em>their</em> work on the
+          line. That flip is the whole point: privacy isn't only about you. It's a shared value about consent, ownership, and
+          who gets to decide what happens to your words. Move the slider to register your gut reaction.
+        </p>
+
+        <div className="feel">
+          <input type="range" min="0" max="100" value={feel} onChange={e=>setFeel(+e.target.value)} aria-label="How would you feel"/>
+          <div className="feel-scale"><span>Totally fine</span><span>Depends</span><span>Not okay</span></div>
+          <div className="feel-readout" style={{color:feel>60?"#ffb3d2":feel<40?"#bdffd9":"#ffe2b0"}}>{feelLabel}</div>
+        </div>
+        <label className="fld"><span>Why did you land there? What would make it okay — or not?</span>
+          <textarea value={feelWhy} onChange={e=>setFeelWhy(e.target.value)} placeholder="Consent? Being asked first? The purpose? Who sees it afterward?"/>
+        </label>
+        <div className="callout">
+          <strong>Carry it forward:</strong> the same care you'd want for your own writing is what others want for theirs —
+          and what you owe a classmate's draft, an interviewee's words, or a professor's unpublished materials.
+        </div>
+      </Section>
+
+      {/* READINGS */}
+      <Section id="readings" num="+" title="Deep dives on AI &amp; data privacy"
+        sub="Primary sources and reputable explainers — read at least one before you finish.">
+        {READINGS.map((r,i)=>(
+          <div className="reading" key={i}>
+            <span className="rdot"></span>
+            <div>
+              <div className="src">{r.src}</div>
+              <a href={r.url} target="_blank" rel="noopener">{r.title} ↗</a>
+              <p>{r.why}</p>
+            </div>
+          </div>
+        ))}
+      </Section>
+
+      {/* ADVICE */}
+      <Section id="advice" num="✎" title="Practical advice"
+        sub="Concrete moves for both sides of the classroom.">
+        <div className="toggle-tabs no-print">
+          <button className={adviceTab==="student"?"on":""} onClick={()=>setAdviceTab("student")}>For students</button>
+          <button className={adviceTab==="faculty"?"on":""} onClick={()=>setAdviceTab("faculty")}>For faculty</button>
+        </div>
+        <ul className="advice-list">
+          {ADVICE[adviceTab].map((a,i)=>(
+            <li key={i}><span className="ai">→</span><span>{a}</span></li>
+          ))}
+        </ul>
+      </Section>
+
+      {/* EXPORT */}
+      <Section id="export" num="⬇" title="Save or submit your responses"
+        sub="Keep a copy for yourself or hand it to your instructor. Everything stays on your device until you export it.">
+        <label className="fld"><span>One last reflection — what will you do differently after this?</span>
+          <textarea value={pledge} onChange={e=>setPledge(e.target.value)} placeholder="e.g. “Switch to the enterprise account for coursework and turn off training on my personal ChatGPT.”"/>
+        </label>
+        <label className="fld" style={{maxWidth:380}}><span>Your name (optional, for the export)</span>
+          <input className="txt" value={name} onChange={e=>setName(e.target.value)} placeholder="Name"/>
+        </label>
+        <div className="btn-row no-print" style={{marginTop:22}}>
+          <button className="btn" onClick={()=>window.print()}>🖨 Print / Save as PDF</button>
+          <button className="btn primary" onClick={exportHTML}>⬇ Download as HTML</button>
+        </div>
+        <div className="no-print" style={{textAlign:"center",marginTop:16}}>
+          <button className="btn ghost" style={{fontSize:13,opacity:.7}} onClick={resetAll}>Clear my responses</button>
+        </div>
+      </Section>
+
+      <footer className="site">
+        <div><strong>AI &amp; Your Privacy</strong> — an interactive classroom guide created by <strong>Marc Watkins</strong>.</div>
+        <p className="disclosure">
+          This web resource was built for classroom use by Marc Watkins with the help of an AI assistant (Claude).
+          Guidance reflects the author's framing for an educational setting; product menus and institutional agreements
+          change over time — confirm specifics (enterprise coverage, opt-out steps) with your own IT/help desk and the
+          linked primary sources. Your responses are stored only in your browser's local storage until you choose to export them.
+        </p>
+      </footer>
+
+      {savedFlash && <div className="saved-pill no-print">✓ Saved on this device</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

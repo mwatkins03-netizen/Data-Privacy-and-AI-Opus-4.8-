@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ethical AI Shadow Play — A Carousel of Choice</title>
+<meta name="description" content="An interactive shadow-play carousel for students: rotate between AI Agency, Data Privacy, Artistic Copyright, and Informed Consent. Each theme is its own card set. Built by Marc Watkins." />
+
+<!-- React (UMD) + Babel for in-browser JSX. Loads from CDN; needs internet on first open. -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+<style>
+  :root{
+    /* Shadow-play theater: near-black stage, warm lamp light, cream silhouettes */
+    --void:#070608;
+    --stage:#0d0c10;
+    --stage-2:#131119;
+    --panel:#16131c;
+    --cream:#f6ead0;
+    --cream-soft:#d9caa6;
+    --cream-dim:#9a8e74;
+    --amber:#ffba6b;
+    --amber-deep:#e89544;
+    --line:rgba(246,234,208,.14);
+    --line-2:rgba(246,234,208,.28);
+
+    /* per-theme accents (each card set is its own colour of light) */
+    --agency:#ffd27a;
+    --privacy:#8fd9ff;
+    --copyright:#ff9e7a;
+    --consent:#86f2ad;
+
+    --font:'Inter',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --serif:'Georgia',"Iowan Old Style",'Times New Roman',serif;
+    --shadow:0 26px 70px rgba(0,0,0,.7);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);color:var(--cream);min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(1200px 760px at 50% -6%, rgba(255,186,107,.16), transparent 55%),
+      radial-gradient(900px 700px at 50% 8%, rgba(232,149,68,.10), transparent 60%),
+      var(--void);
+    background-attachment:fixed;
+  }
+  a{color:var(--amber)}
+  button{font-family:inherit}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px 18px 90px}
+  .ico{filter:drop-shadow(0 0 5px rgba(246,234,208,.35));opacity:.95;flex:none}
+
+  /* ---------- Header ---------- */
+  header.site{text-align:center;padding:18px 0 4px}
+  .kicker{letter-spacing:.4em;text-transform:uppercase;font-size:11.5px;color:var(--cream-dim);font-weight:700;margin-bottom:14px}
+  h1.title{
+    font-size:clamp(28px,5.4vw,52px);line-height:1.02;margin:0;font-weight:800;letter-spacing:.01em;
+    color:var(--cream);text-shadow:0 0 28px rgba(255,186,107,.55),0 0 4px rgba(255,186,107,.4);
+  }
+  h1.title .amber{color:var(--amber)}
+  .lede{max-width:660px;margin:16px auto 0;color:var(--cream-soft);font-size:16.5px}
+  .ai-chip{
+    display:inline-flex;align-items:center;gap:8px;margin:18px auto 0;font-size:12px;font-weight:700;color:var(--cream-soft);
+    background:rgba(255,186,107,.08);border:1px solid var(--line-2);border-radius:999px;padding:7px 14px;
+  }
+  .attribution{margin:14px auto 0;max-width:760px;font-size:12.5px;color:var(--cream-dim);
+    background:rgba(246,234,208,.04);border:1px solid var(--line);border-radius:12px;padding:10px 15px}
+  .attribution a{text-decoration:underline;text-underline-offset:2px}
+
+  /* ---------- STAGE / CAROUSEL ---------- */
+  .theater{position:relative;margin:26px auto 0;max-width:860px}
+  .beam{position:absolute;left:50%;top:-4%;width:62%;height:78%;transform:translateX(-50%);pointer-events:none;
+    background:radial-gradient(60% 50% at 50% 8%, rgba(255,186,107,.28), rgba(255,186,107,.05) 50%, transparent 72%);
+    filter:blur(6px);z-index:0;animation:flicker 5s ease-in-out infinite}
+  @keyframes flicker{0%,100%{opacity:.85}45%{opacity:1}70%{opacity:.78}}
+  .lamp{position:absolute;left:50%;top:9%;width:16px;height:16px;border-radius:50%;transform:translate(-50%,-50%);
+    background:radial-gradient(circle,#fff,var(--amber) 55%,transparent);box-shadow:0 0 26px 8px rgba(255,186,107,.6);z-index:1;animation:flicker 5s ease-in-out infinite}
+
+  .stage{position:relative;height:clamp(360px,54vw,470px);display:flex;align-items:center;justify-content:center;
+    perspective:1250px;perspective-origin:50% 36%;z-index:2;touch-action:pan-y}
+  .tilt{transform-style:preserve-3d;transform:rotateX(14deg)}
+  .ring{
+    --fw:min(68vw,242px);--fh:clamp(270px,44vw,322px);--rz:232px;
+    position:relative;width:var(--fw);height:var(--fh);transform-style:preserve-3d;cursor:grab;will-change:transform;
+  }
+  .ring.dragging{cursor:grabbing}
+  .facet{
+    position:absolute;inset:0;border-radius:18px;overflow:hidden;
+    background:linear-gradient(180deg,#0d0b11,#040305);
+    border:1px solid rgba(246,234,208,.18);
+    box-shadow:inset 0 0 60px rgba(0,0,0,.85), 0 18px 40px rgba(0,0,0,.55);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:20px;
+    transform:rotateY(0deg) translateZ(var(--rz));backface-visibility:hidden;
+    transition:opacity .55s, filter .55s;
+  }
+  .facet .grain{position:absolute;inset:0;opacity:.5;pointer-events:none;
+    background:repeating-linear-gradient(115deg, transparent 0 7px, rgba(0,0,0,.18) 7px 8px)}
+  .facet.dim{opacity:.5;filter:brightness(.6) saturate(.85) blur(.4px)}
+  .facet .f-tag{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--cream-dim);font-weight:700}
+  .facet h3{margin:0;font-size:20px;letter-spacing:.02em;text-align:center;color:var(--cream)}
+  .facet .f-blurb{margin:0;font-size:12.5px;color:var(--cream-soft);text-align:center;max-width:190px}
+  .facet .corner{position:absolute;opacity:.5}
+  .facet .corner.tl{top:12px;left:12px}.facet .corner.tr{top:12px;right:12px}
+  .facet .corner.bl{bottom:12px;left:12px}.facet .corner.br{bottom:12px;right:12px}
+
+  /* cast shadow each panel throws onto the stage floor — rotates with the ring */
+  .cast{position:absolute;left:0;top:0;width:var(--fw);height:calc(var(--fh) * 1.25);pointer-events:none;
+    transform-origin:50% 0;
+    transform:rotateY(0deg) translateZ(var(--rz)) translateY(calc(var(--fh) * 0.5)) rotateX(90deg);
+    background:linear-gradient(to bottom, rgba(0,0,0,.62), rgba(0,0,0,.3) 36%, transparent 80%);
+    filter:blur(8px);border-radius:46% 46% 38% 38%;opacity:.85}
+  .contact{position:absolute;left:50%;bottom:8%;width:80%;height:64px;transform:translateX(-50%);z-index:0;pointer-events:none;
+    background:radial-gradient(50% 100% at 50% 50%, rgba(0,0,0,.7), transparent 72%);filter:blur(11px)}
+  .floor{position:absolute;left:50%;bottom:9%;width:60%;height:40px;transform:translateX(-50%);z-index:1;pointer-events:none;
+    background:radial-gradient(50% 100% at 50% 0,rgba(255,186,107,.16),transparent 70%);filter:blur(3px)}
+  .spin-toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;border:1px solid var(--line-2);
+    background:rgba(246,234,208,.06);color:var(--cream-soft);border-radius:999px;padding:7px 15px;font-size:12.5px;font-weight:700;transition:.15s}
+  .spin-toggle:hover{background:rgba(255,186,107,.14);color:var(--amber)}
+
+  /* carousel controls */
+  .controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:10px;position:relative;z-index:3}
+  .arrow{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--cream);
+    background:rgba(246,234,208,.06);border:1px solid var(--line-2);transition:.15s}
+  .arrow:hover{background:rgba(255,186,107,.16);transform:translateY(-1px);color:var(--amber)}
+  .dots{display:flex;gap:10px}
+  .dot{width:11px;height:11px;border-radius:50%;cursor:pointer;border:1px solid var(--line-2);background:transparent;transition:.2s;padding:0}
+  .dot.on{transform:scale(1.25);box-shadow:0 0 12px currentColor;background:currentColor;border-color:currentColor}
+  .spin-hint{text-align:center;color:var(--cream-dim);font-size:12px;margin-top:8px;letter-spacing:.04em}
+
+  /* tab strip (text labels under carousel, accessible nav) */
+  .tabstrip{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0 0}
+  .tabstrip button{cursor:pointer;display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:transparent;
+    color:var(--cream-soft);border-radius:999px;padding:8px 14px;font-weight:600;font-size:13px;transition:.15s}
+  .tabstrip button:hover{border-color:var(--line-2)}
+  .tabstrip button.on{color:var(--void);font-weight:800}
+
+  /* ---------- SCENE (active card set) ---------- */
+  .scene{margin:26px 0 0;animation:rise .45s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .scene-head{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+  .scene-badge{width:54px;height:54px;border-radius:14px;display:grid;place-items:center;flex:none;
+    border:1px solid var(--line-2);background:rgba(246,234,208,.04)}
+  .scene-head .st{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--cream-dim);font-weight:700}
+  .scene-head h2{margin:2px 0 0;font-size:24px;letter-spacing:-.01em}
+  .scene-intro{color:var(--cream-soft);font-size:15.5px;margin:10px 0 0;max-width:720px}
+
+  .card{background:linear-gradient(180deg,var(--panel),#0c0a10);border:1px solid var(--line);border-radius:16px;
+    padding:18px;box-shadow:var(--shadow)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+  @media (max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card h3{margin:0;font-size:16.5px;display:flex;align-items:center;gap:9px}
+  .card p{margin:9px 0 0;color:var(--cream-soft);font-size:14px}
+  .card ul{margin:10px 0 0;padding-left:4px;list-style:none}
+  .card ul li{display:flex;gap:9px;align-items:flex-start;margin:7px 0;font-size:13.5px;color:var(--cream-soft)}
+  .card ul li .b{color:currentColor;flex:none;margin-top:2px}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;border-radius:999px;padding:5px 11px;border:1px solid var(--line-2);letter-spacing:.02em}
+
+  /* door choice */
+  .doors{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  @media (max-width:600px){.doors{grid-template-columns:1fr}}
+  .door{cursor:pointer;border:1px solid var(--line);border-radius:16px;padding:20px;text-align:center;transition:.18s;
+    background:rgba(246,234,208,.02);color:var(--cream)}
+  .door:hover{border-color:var(--line-2);transform:translateY(-2px)}
+  .door.sel{border-color:currentColor;box-shadow:0 0 0 1px currentColor,0 16px 40px rgba(0,0,0,.5)}
+  .door .di{filter:drop-shadow(0 0 12px currentColor)}
+  .door h4{margin:10px 0 4px;font-size:16px}
+  .door span{font-size:12.5px;color:var(--cream-dim)}
+  .verdict{margin-top:16px;border-radius:14px;padding:16px 18px;border:1px solid var(--line-2);font-size:14.5px;animation:rise .4s ease}
+
+  /* checklist */
+  .steps{list-style:none;padding:0;margin:16px 0 0}
+  .steps li{display:flex;gap:12px;align-items:flex-start;padding:12px 13px;margin:8px 0;border-radius:12px;cursor:pointer;
+    border:1px solid var(--line);background:rgba(246,234,208,.02);transition:.15s}
+  .steps li:hover{border-color:var(--line-2)}
+  .steps li.done{border-color:currentColor;background:rgba(246,234,208,.05)}
+  .chk{flex:none;width:25px;height:25px;border-radius:7px;border:2px solid var(--line-2);display:grid;place-items:center;color:transparent;margin-top:1px}
+  .steps li.done .chk{background:currentColor;border-color:currentColor;color:var(--void)}
+  .steps li strong{display:block;font-size:14.5px}.steps li .sd{color:var(--cream-soft);font-size:13px}
+  .bar{height:8px;border-radius:999px;background:rgba(246,234,208,.08);overflow:hidden;margin-top:14px}
+  .bar > i{display:block;height:100%;background:currentColor;border-radius:999px;transition:width .35s;box-shadow:0 0 12px currentColor}
+  .barlbl{font-size:12.5px;color:var(--cream-dim);margin-top:7px;font-weight:600}
+
+  /* compare devices */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  @media (max-width:760px){.compare{grid-template-columns:1fr}}
+  .device{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#08070b}
+  .device .top{display:flex;align-items:center;gap:8px;padding:9px 12px;background:rgba(246,234,208,.03);border-bottom:1px solid var(--line);font-size:12px;font-weight:700;color:var(--cream-soft)}
+  .device .scr{padding:14px;min-height:150px}
+  .bub{background:rgba(246,234,208,.05);border-radius:11px;padding:10px 12px;font-size:13px;color:var(--cream-soft);margin:7px 0}
+  .bub.me{background:rgba(255,186,107,.10);text-align:right}
+  .rev{font-size:12.5px;color:var(--cream-dim);margin-top:6px;opacity:0;transform:translateY(6px);transition:.4s}
+  .rev.show{opacity:1;transform:none}.rev b{color:var(--cream)}
+
+  /* flip cards (copyright) */
+  .flipgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+  @media (max-width:760px){.flipgrid{grid-template-columns:1fr 1fr}}
+  @media (max-width:520px){.flipgrid{grid-template-columns:1fr}}
+  .flip{perspective:1000px;height:178px;cursor:pointer}
+  .flip-in{position:relative;width:100%;height:100%;transition:transform .6s;transform-style:preserve-3d}
+  .flip.on .flip-in{transform:rotateY(180deg)}
+  .flip-face{position:absolute;inset:0;border-radius:14px;padding:15px;backface-visibility:hidden;
+    display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);background:linear-gradient(180deg,var(--panel),#0a090d)}
+  .flip-front{align-items:center;justify-content:center;text-align:center}
+  .flip-front .ft{font-size:14px;color:var(--cream)}
+  .flip-front .hint{font-size:11px;color:var(--cream-dim);letter-spacing:.1em;text-transform:uppercase}
+  .flip-back{transform:rotateY(180deg);justify-content:center}
+  .flip-back .vh{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px}
+  .flip-back p{margin:6px 0 0;font-size:12.5px;color:var(--cream-soft)}
+  .ok{color:var(--consent)}.no{color:#ff8585}.dep{color:var(--amber)}
+
+  /* consent conditions */
+  .conds{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+  @media (max-width:640px){.conds{grid-template-columns:1fr}}
+  .cond{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:13px;padding:13px;cursor:pointer;transition:.15s;background:rgba(246,234,208,.02)}
+  .cond:hover{border-color:var(--line-2)}
+  .cond.met{border-color:var(--consent);background:rgba(134,242,173,.07)}
+  .cond .cc{flex:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line-2);display:grid;place-items:center;color:transparent;margin-top:1px}
+  .cond.met .cc{background:var(--consent);border-color:var(--consent);color:var(--void)}
+  .cond strong{display:block;font-size:14px}.cond span{font-size:12.5px;color:var(--cream-soft)}
+  .consent-verdict{margin-top:16px;border-radius:13px;padding:14px 16px;border:1px solid var(--line-2);font-size:14px;color:var(--cream-soft)}
+
+  /* slider */
+  .feel input[type=range]{width:100%;height:6px;accent-color:var(--consent);margin-top:6px}
+  .feel-scale{display:flex;justify-content:space-between;font-size:11.5px;color:var(--cream-dim);margin-top:4px}
+  .feel-out{text-align:center;font-weight:700;font-size:15px;margin-top:12px;min-height:24px}
+
+  /* fields */
+  label.fld{display:block;margin-top:16px}
+  label.fld > span{display:block;font-size:13.5px;font-weight:600;margin-bottom:7px}
+  textarea,input.txt{width:100%;border:1px solid var(--line-2);background:rgba(0,0,0,.4);color:var(--cream);
+    border-radius:12px;padding:11px 13px;font-size:15px;font-family:var(--serif);line-height:1.5;resize:vertical}
+  textarea{min-height:80px}
+  textarea:focus,input.txt:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,186,107,.15)}
+
+  .callout{border-left:3px solid var(--amber);background:rgba(255,186,107,.07);border-radius:0 12px 12px 0;padding:11px 15px;margin-top:16px;font-size:13.5px;color:var(--cream-soft)}
+  .callout strong{color:var(--amber)}
+
+  /* playbill sections */
+  section.bill{background:linear-gradient(180deg,var(--stage-2),var(--void));border:1px solid var(--line);border-radius:18px;padding:24px 22px;margin:22px 0;scroll-margin-top:20px}
+  .bill h2{margin:0;font-size:21px;display:flex;align-items:center;gap:10px}
+  .bill .sub{color:var(--cream-soft);font-size:14.5px;margin:6px 0 0}
+  .reading{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .reading:last-child{border-bottom:none}
+  .reading a{font-weight:700;font-size:14.5px}
+  .reading .src{color:var(--cream-dim);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .reading p{margin:3px 0 0;color:var(--cream-soft);font-size:13px}
+  .toggle-tabs{display:inline-flex;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;padding:4px;margin-top:12px}
+  .toggle-tabs button{cursor:pointer;border:none;background:transparent;color:var(--cream-soft);font-weight:700;font-size:13.5px;padding:8px 16px;border-radius:9px}
+  .toggle-tabs button.on{background:linear-gradient(135deg,var(--amber),var(--amber-deep));color:var(--void)}
+  .advice li{display:flex;gap:10px;padding:9px 0;color:var(--cream-soft);font-size:14px;border-bottom:1px solid var(--line);list-style:none}
+  .advice{padding:0;margin:14px 0 0}.advice li:last-child{border-bottom:none}
+
+  .btn{cursor:pointer;border:1px solid var(--line-2);background:rgba(246,234,208,.06);color:var(--cream);border-radius:12px;padding:12px 20px;font-weight:700;font-size:15px;transition:.15s;display:inline-flex;align-items:center;gap:8px}
+  .btn:hover{background:rgba(255,186,107,.14);transform:translateY(-1px)}
+  .btn.primary{border:none;background:linear-gradient(135deg,var(--amber),var(--amber-deep));color:var(--void);box-shadow:0 10px 30px rgba(255,186,107,.28)}
+  .btn.ghost{background:transparent}
+  .btn-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+
+  .saved-pill{position:fixed;bottom:16px;right:16px;font-size:12px;color:var(--cream-dim);background:rgba(13,12,16,.92);border:1px solid var(--line);border-radius:999px;padding:6px 12px;z-index:40}
+  footer.site{margin-top:40px;border-top:1px solid var(--line);padding-top:22px;text-align:center;color:var(--cream-dim);font-size:12.5px}
+  .disclosure{max-width:740px;margin:13px auto 0;font-size:12px;font-style:italic;line-height:1.6}
+
+  @media print{
+    body{background:#fff;color:#111}
+    .no-print{display:none !important}
+    .wrap{max-width:none;padding:0}
+    .scene{display:block !important}
+    .card,.device,.bub,.flip-face,section.bill{background:#fff;color:#111;box-shadow:none;border:1px solid #ccc}
+    h1.title{color:#111;text-shadow:none}
+    .ico{filter:none}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const {useState,useEffect,useRef} = React;
+
+/* ============================ ICONS ============================ */
+const P = {
+  brain:(<g><path d="M9 4a3 3 0 0 0-3 3 3 3 0 0 0-1 5 3 3 0 0 0 3 4M15 4a3 3 0 0 1 3 3 3 3 0 0 1 1 5 3 3 0 0 1-3 4M9 4a2.6 2.6 0 0 1 3-1 2.6 2.6 0 0 1 3 1M12 3v17M8.5 16a2.5 2.5 0 0 0 3.5 0 2.5 2.5 0 0 0 3.5 0"/></g>),
+  ai:(<g><rect x="6" y="6" width="12" height="12" rx="2.5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/><circle cx="12" cy="12" r="2.2"/></g>),
+  lock:(<g><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.4" r="1.4"/></g>),
+  copyright:(<g><circle cx="12" cy="12" r="9"/><path d="M15 9.6a4 4 0 1 0 0 4.8"/></g>),
+  consent:(<g><path d="M4 20a6 6 0 0 1 11.5-2.4"/><circle cx="9.5" cy="7" r="3.2"/><path d="M14.5 14.5l2 2 4-4"/></g>),
+  key:(<g><circle cx="7" cy="12" r="3.3"/><path d="M10.3 12H21M19 12v3M16 12v2.5"/></g>),
+  eye:(<g><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></g>),
+  finger:(<g><path d="M12 5a7 7 0 0 0-7 7M12 8a4 4 0 0 0-4 4v3M12 11a1 1 0 0 0-1 1v4M15 8a4 4 0 0 1 1 4M19 12a7 7 0 0 0-3-5.7"/></g>),
+  db:(<g><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></g>),
+  toggle:(<g><rect x="3" y="8" width="18" height="8" rx="4"/><circle cx="16" cy="12" r="2.6"/></g>),
+  ghost:(<g><path d="M5 20V10a7 7 0 0 1 14 0v10l-2.3-1.6L14 20l-2-1.6L10 20l-2.7-1.6z"/><circle cx="9.5" cy="11" r="1"/><circle cx="14.5" cy="11" r="1"/></g>),
+  quill:(<g><path d="M20 4C12 6 7 11 5 19M5 19l3-1c5-1.5 9-4 11-9M13 8l3 3"/></g>),
+  palette:(<g><path d="M12 3a9 9 0 1 0 0 18c1.4 0 1.8-1 1.8-1.8 0-1.7 1.3-2.2 2.2-2.2H19a3 3 0 0 0 3-3 8 8 0 0 0-10-8z"/><circle cx="8.5" cy="11" r="1"/><circle cx="12" cy="8" r="1"/><circle cx="15.5" cy="11" r="1"/></g>),
+  gavel:(<g><path d="M14 3l7 7-2.5 2.5-7-7zM9.5 7.5l4 4M3 21h8M5.5 13l4 4-3 3-4-4z"/></g>),
+  doc:(<g><path d="M7 3h7l4 4v14H7zM14 3v4h4"/><path d="M9.5 12h5M9.5 15h5M9.5 18h3"/></g>),
+  scroll:(<g><path d="M8 4h9a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H8M8 4a2 2 0 0 0-2 2v1h3M8 4a2 2 0 0 1 2 2v11a2 2 0 0 0 2 2"/><path d="M11 9h5M11 12h5"/></g>),
+  gear:(<g><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>),
+  spark:(<g><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.6 2.6M15.4 15.4L18 18M18 6l-2.6 2.6M8.6 15.4L6 18"/></g>),
+  shield:(<g><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></g>),
+  person:(<g><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></g>),
+  warn:(<g><path d="M12 3 2 20h20z"/><path d="M12 9.5v4.5M12 17h.01"/></g>),
+  lamp:(<g><path d="M9.5 18h5M10.5 21h3M12 3a6 6 0 0 0-3.6 10.8c.9.7 1.1 1.6 1.1 2.2h5c0-.6.2-1.5 1.1-2.2A6 6 0 0 0 12 3z"/></g>),
+  door:(<g><path d="M6 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17M5 21h14M14 12h.5"/></g>),
+  mask:(<g><path d="M4 4h7v5a3.5 3.5 0 0 1-7 0z"/><path d="M13 4h7v5a3.5 3.5 0 0 1-7 0z"/><path d="M6 6.5h.5M9 6.5h.5M15 6.5h.5M18 6.5h.5"/></g>),
+  hand:(<g><path d="M8 11V5.5a1.5 1.5 0 0 1 3 0V11M11 11V4.5a1.5 1.5 0 0 1 3 0V11M14 11V6a1.5 1.5 0 0 1 3 0v7a6 6 0 0 1-6 6h-1a5 5 0 0 1-4-2l-2.5-3.2a1.6 1.6 0 0 1 2.4-2L8 13"/></g>),
+  arrowL:(<g><path d="M15 5l-7 7 7 7"/></g>),
+  arrowR:(<g><path d="M9 5l7 7-7 7"/></g>),
+  check:(<g><path d="M4 12.5l5 5L20 6"/></g>),
+  book:(<g><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19a2 2 0 0 1 2-2h13"/></g>),
+  rotate:(<g><path d="M3.5 12a8.5 8.5 0 0 1 14.5-6L21 9M21 4v5h-5"/><path d="M20.5 12a8.5 8.5 0 0 1-14.5 6L3 15M3 20v-5h5"/></g>),
+  pause:(<g><path d="M9 5v14M15 5v14"/></g>),
+  play:(<g><path d="M7 5l12 7-12 7z"/></g>),
+};
+function Ico({n,size=22,style}){
+  return <svg className="ico" width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={style}>{P[n]}</svg>;
+}
+
+/* ============================ DATA ============================ */
+const THEMES = [
+  {key:"agency",   label:"AI Agency",        accent:"var(--agency)",   col:"#ffd27a", icon:"brain",     tag:"Your choice",   blurb:"Who's steering — you or the tool?"},
+  {key:"privacy",  label:"Data Privacy",     accent:"var(--privacy)",  col:"#8fd9ff", icon:"lock",      tag:"Your data",     blurb:"Stop the quiet harvest of your words."},
+  {key:"copyright",label:"Artistic Copyright",accent:"var(--copyright)",col:"#ff9e7a", icon:"copyright", tag:"Whose work?",   blurb:"Creativity, ownership & training data."},
+  {key:"consent",  label:"Informed Consent", accent:"var(--consent)",  col:"#86f2ad", icon:"consent",   tag:"Were you asked?",blurb:"The four conditions of a real yes."},
+];
+
+const ENTERPRISE = [
+  {name:"Microsoft Copilot", icon:"shield", available:true,  note:"Sign in with your university Microsoft account.",
+    pts:["Covered by the university's enterprise agreement","Your prompts aren't used to train the models","Data stays inside the protected boundary"]},
+  {name:"Google Gemini", icon:"spark", available:false, note:"Coming soon for your university Google Workspace.",
+    pts:["Will carry the same enterprise protections","Enterprise Workspace prompts aren't used for training","Use your school account — not a personal Gmail"]},
+];
+
+const OPTOUT = [
+  {t:"Open ChatGPT Settings", d:"Click your profile → Settings.", icon:"gear"},
+  {t:"Go to Data Controls", d:"Find the “Data Controls” section.", icon:"toggle"},
+  {t:"Turn OFF “Improve the model for everyone”", d:"Stops your chats being used for training. (Wording varies.)", icon:"db"},
+  {t:"Use Temporary Chat for sensitive prompts", d:"The ghost icon: not saved, not used to train.", icon:"ghost"},
+  {t:"Know the trade-off", d:"Turning training off doesn't lower quality for you.", icon:"eye"},
+];
+
+const COPYRIGHT_CARDS = [
+  {icon:"doc",     t:"Your own class notes", verdict:"ok",  vt:"Generally fine", d:"It's yours — but scrub anything private about other people first."},
+  {icon:"quill",   t:"A classmate's essay draft", verdict:"no", vt:"Not yours to share", d:"Their words, their call. Ask before uploading anyone's writing."},
+  {icon:"book",    t:"Your professor's unpublished slides", verdict:"no", vt:"Often shared in confidence", d:"Course materials are someone's creative work — don't feed them to a model."},
+  {icon:"scroll",  t:"A published news article", verdict:"dep", vt:"Depends on the use", d:"Summarizing for yourself is usually okay; reproducing it isn't. Check the terms."},
+  {icon:"palette", t:"A living artist's image — “make more like this”", verdict:"dep", vt:"Ethically fraught", d:"Style isn't owned, but mimicking a working artist raises real legal & ethical questions."},
+  {icon:"person",  t:"A photo of a friend, to edit", verdict:"no", vt:"Get their consent", d:"Someone's face is their data. Don't upload it without asking."},
+];
+
+const CONDS = [
+  {t:"Disclosure", d:"You were actually told what happens to your data.", icon:"eye"},
+  {t:"Understanding", d:"It was explained in plain language you could follow.", icon:"book"},
+  {t:"Voluntary", d:"You could say no without losing access or being penalized.", icon:"hand"},
+  {t:"Revocable", d:"You can change your mind and pull your data back later.", icon:"key"},
+];
+
+const READINGS = [
+  {icon:"toggle",   title:"Data Controls FAQ", src:"OpenAI Help Center", why:"What the training toggle actually does, and how to file a privacy request.", url:"https://help.openai.com/en/articles/7730893-data-controls-faq"},
+  {icon:"shield",   title:"Privacy & security for Microsoft 365 Copilot", src:"Microsoft Learn", why:"How enterprise Copilot handles your data.", url:"https://learn.microsoft.com/en-us/copilot/microsoft-365/microsoft-365-copilot-privacy"},
+  {icon:"spark",    title:"Gemini for Workspace — your data", src:"Google Workspace", why:"How enterprise Gemini differs from a personal account.", url:"https://support.google.com/a/answer/15706919"},
+  {icon:"copyright",title:"Copyright and Artificial Intelligence", src:"U.S. Copyright Office", why:"The official study on AI training data and authorship.", url:"https://www.copyright.gov/ai/"},
+  {icon:"brain",    title:"Privacy in an AI Era", src:"Stanford HAI", why:"Why AI raises the privacy stakes — research-grounded.", url:"https://hai.stanford.edu/news/privacy-ai-era-how-do-we-protect-our-personal-information"},
+  {icon:"eye",      title:"*Privacy Not Included", src:"Mozilla Foundation", why:"Plain-language reviews of how apps use your data.", url:"https://foundation.mozilla.org/en/privacynotincluded/"},
+  {icon:"scroll",   title:"Privacy in Context (contextual integrity)", src:"Helen Nissenbaum", why:"The framework behind the reframe in “Informed Consent.”", url:"https://nissenbaum.tech.cornell.edu/projects.html"},
+];
+
+const ADVICE = {
+  student:[
+    {icon:"door",  t:"Default to your university's enterprise AI for coursework — it's already protected."},
+    {icon:"toggle",t:"Turn off training in personal ChatGPT; use Temporary Chat for anything sensitive."},
+    {icon:"quill", t:"Never paste someone else's work — a draft, a photo, a professor's materials — into a personal account."},
+    {icon:"eye",   t:"Before uploading, ask: would I be okay if this became part of a model millions query?"},
+    {icon:"book",  t:"Read the data-controls page before trusting a tool with personal info."},
+  ],
+  faculty:[
+    {icon:"shield",  t:"Point students to enterprise-protected accounts first; make it the easy path."},
+    {icon:"toggle",  t:"Teach the opt-out — most students don't know the training toggle exists."},
+    {icon:"mask",    t:"Run the shadow-play assignment early; the surprise is what makes it stick."},
+    {icon:"consent", t:"Model consent: don't put student writing into a personal AI to summarize or grade."},
+    {icon:"scroll",  t:"Frame privacy as a shared value, not a rule — open with the reframe question."},
+    {icon:"warn",    t:"Confirm your institution's specific agreement with IT before promising protection."},
+  ],
+};
+
+const STORE_KEY = "aiprivacy.shadow.v1";
+const load = () => { try{return JSON.parse(localStorage.getItem(STORE_KEY))||{}}catch(e){return {}} };
+const esc = s => (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const mod = (n,m) => ((n%m)+m)%m;
+
+/* ============================ CAROUSEL ============================ */
+const AUTO_SPEED = 0.14;   // degrees per frame ≈ 8°/s — a slow lantern turn
+
+function Carousel({onActive}){
+  const ringRef = useRef(null);
+  const rot     = useRef(0);            // continuous rotation in degrees
+  const vel     = useRef(0);            // momentum velocity
+  const drag    = useRef({on:false,x0:0,r0:0,lx:0,moved:0,v:0});
+  const momentum= useRef(false);
+  const hover   = useRef(false);
+  const activeRef = useRef(0);
+  const spinRef = useRef(true);
+  const [active,setActiveS] = useState(0);
+  const [spinOn,setSpinOn]  = useState(true);
+
+  const setActive = i => { if(i!==activeRef.current){ activeRef.current=i; setActiveS(i); onActive&&onActive(i);} };
+
+  const measure = () => { const r=ringRef.current; if(r){ const R=Math.round(r.offsetWidth*0.96); r.style.setProperty("--rz",R+"px"); } };
+  const write = (transition) => {
+    const r=ringRef.current; if(!r) return;
+    r.style.transition = transition ? "transform .7s cubic-bezier(.22,.85,.25,1)" : "none";
+    r.style.transform = `translateZ(calc(-1 * var(--rz))) rotateY(${rot.current}deg)`;
+  };
+  const nearest = () => mod(Math.round(-rot.current/90),4);
+  const snapSoft = () => { const t=Math.round(rot.current/90)*90; rot.current=t; write(true); setActive(mod(Math.round(-t/90),4)); };
+
+  // animation loop
+  useEffect(()=>{
+    measure(); write(false);
+    const onResize=()=>{measure();write(false);};
+    window.addEventListener("resize",onResize);
+    let raf;
+    const loop=()=>{
+      if(drag.current.on){
+        write(false);
+      } else if(momentum.current){
+        rot.current += vel.current;
+        vel.current *= 0.94;
+        write(false);
+        setActive(nearest());
+        if(Math.abs(vel.current) < 0.12){ momentum.current=false; snapSoft(); }
+      } else if(spinRef.current && !hover.current){
+        rot.current += AUTO_SPEED;
+        write(false);
+        setActive(nearest());
+      }
+      raf=requestAnimationFrame(loop);
+    };
+    raf=requestAnimationFrame(loop);
+
+    // freeze ambient spin the moment the user settles in to read or engage
+    const stopEngage=()=>{ if(spinRef.current && !drag.current.on){ spinRef.current=false; setSpinOn(false); snapSoft(); } };
+    window.addEventListener("focusin",stopEngage);
+    window.addEventListener("scroll",stopEngage,{passive:true});
+    window.addEventListener("keydown",stopEngage);
+
+    // global pointer up/move (so drags continue outside the ring)
+    const move=e=>{
+      if(!drag.current.on) return;
+      const x=e.touches?e.touches[0].clientX:e.clientX;
+      const dx=x-drag.current.x0;
+      drag.current.v=(x-drag.current.lx)*0.5; drag.current.lx=x;
+      drag.current.moved=Math.abs(dx);
+      rot.current=drag.current.r0 + dx*0.5;
+      write(false); setActive(nearest());
+    };
+    const up=()=>{
+      if(!drag.current.on) return;
+      drag.current.on=false;
+      ringRef.current && ringRef.current.classList.remove("dragging");
+      if(drag.current.moved>6){ momentum.current=true; vel.current=Math.max(-18,Math.min(18,drag.current.v)); }
+    };
+    window.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
+    window.addEventListener("touchmove",move,{passive:true}); window.addEventListener("touchend",up);
+    return ()=>{ cancelAnimationFrame(raf);
+      window.removeEventListener("resize",onResize);
+      window.removeEventListener("focusin",stopEngage); window.removeEventListener("scroll",stopEngage); window.removeEventListener("keydown",stopEngage);
+      window.removeEventListener("mousemove",move); window.removeEventListener("mouseup",up);
+      window.removeEventListener("touchmove",move); window.removeEventListener("touchend",up); };
+  },[]);
+
+  const onDown=e=>{
+    const x=e.touches?e.touches[0].clientX:e.clientX;
+    drag.current={on:true,x0:x,r0:rot.current,lx:x,moved:0,v:0};
+    momentum.current=false; spinRef.current=false; setSpinOn(false);
+    ringRef.current && ringRef.current.classList.add("dragging");
+  };
+  const select=i=>{
+    spinRef.current=false; setSpinOn(false); momentum.current=false; drag.current.on=false;
+    const base=-i*90;
+    rot.current = base + Math.round((rot.current-base)/360)*360;   // nearest equivalent angle
+    write(true); setActive(i);
+  };
+  const facetClick=i=>{ if(drag.current.moved>6) return; select(i); };
+  const toggleSpin=()=>{
+    if(spinRef.current){ spinRef.current=false; setSpinOn(false); momentum.current=false; snapSoft(); }
+    else { spinRef.current=true; setSpinOn(true); momentum.current=false; write(false); }
+  };
+
+  return (
+    <div className="theater no-print"
+         onMouseEnter={()=>hover.current=true} onMouseLeave={()=>hover.current=false}>
+      <div className="beam"></div><div className="lamp"></div>
+      <div className="stage">
+        <div className="contact"></div><div className="floor"></div>
+        <div className="tilt">
+          <div className="ring" ref={ringRef} onMouseDown={onDown} onTouchStart={onDown}>
+            {/* cast shadows on the stage floor */}
+            {THEMES.map((t,i)=>(
+              <div key={"c"+t.key} className="cast"
+                style={{transform:`rotateY(${i*90}deg) translateZ(var(--rz)) translateY(calc(var(--fh) * 0.5)) rotateX(90deg)`}}/>
+            ))}
+            {THEMES.map((t,i)=>(
+              <div key={t.key}
+                className={"facet "+(active===i?"":"dim")}
+                style={{transform:`rotateY(${i*90}deg) translateZ(var(--rz))`, color:t.col}}
+                onClick={()=>facetClick(i)}>
+                <div className="grain"></div>
+                <span className="corner tl"><Ico n="key" size={16}/></span>
+                <span className="corner tr"><Ico n="spark" size={16}/></span>
+                <span className="corner bl"><Ico n="finger" size={16}/></span>
+                <span className="corner br"><Ico n="mask" size={16}/></span>
+                <Ico n={t.icon} size={74} style={{color:t.col}} />
+                <span className="f-tag">{t.tag}</span>
+                <h3>{t.label}</h3>
+                <p className="f-blurb">{t.blurb}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="controls">
+        <button className="arrow" aria-label="Previous" onClick={()=>select(mod(activeRef.current-1,4))}><Ico n="arrowL" size={22}/></button>
+        <div className="dots">
+          {THEMES.map((t,i)=>(
+            <button key={i} className={"dot "+(active===i?"on":"")} style={{color:t.col}} aria-label={t.label} onClick={()=>select(i)}/>
+          ))}
+        </div>
+        <button className="arrow" aria-label="Next" onClick={()=>select(mod(activeRef.current+1,4))}><Ico n="arrowR" size={22}/></button>
+      </div>
+
+      <div style={{textAlign:"center",marginTop:12}}>
+        <button className="spin-toggle" onClick={toggleSpin}>
+          <Ico n={spinOn?"pause":"rotate"} size={15}/>{spinOn?"Pause the carousel":"Spin the carousel"}
+        </button>
+      </div>
+      <div className="spin-hint">it turns slowly on its own — grab it to spin, or tap a panel to stop on a theme</div>
+
+      <div className="tabstrip">
+        {THEMES.map((t,i)=>(
+          <button key={t.key} className={active===i?"on":""}
+            style={active===i?{background:t.col,borderColor:t.col}:{color:t.col}}
+            onClick={()=>select(i)}>
+            <Ico n={t.icon} size={16}/>{t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================ SCENES ============================ */
+function SceneHead({theme}){
+  return (
+    <div className="scene-head">
+      <div className="scene-badge" style={{color:theme.col}}><Ico n={theme.icon} size={28} style={{color:theme.col}}/></div>
+      <div>
+        <div className="st" style={{color:theme.col}}>{theme.tag}</div>
+        <h2>{theme.label}</h2>
+      </div>
+    </div>
+  );
+}
+
+function AgencyScene({theme,door,setDoor}){
+  return (
+    <div className="scene" style={{color:theme.col}}>
+      <SceneHead theme={theme}/>
+      <p className="scene-intro">You have more control than you think. The first choice is which door your words walk through —
+        the same chatbot behaves very differently depending on the account behind it.</p>
+
+      <div className="doors">
+        <div className={"door "+(door==="personal"?"sel":"")} style={{color:"#ff8585"}} onClick={()=>setDoor("personal")}>
+          <Ico n="door" size={40} className="di" style={{color:"#ff8585"}}/>
+          <h4>Personal account</h4>
+          <span>Your free, signed-up-yourself login</span>
+        </div>
+        <div className={"door "+(door==="enterprise"?"sel":"")} style={{color:theme.col}} onClick={()=>setDoor("enterprise")}>
+          <Ico n="shield" size={40} className="di" style={{color:theme.col}}/>
+          <h4>Enterprise account</h4>
+          <span>Your university-provided login</span>
+        </div>
+      </div>
+
+      {door==="personal" && (
+        <div className="verdict" style={{borderColor:"#ff8585",color:"#ffc7c7",background:"rgba(255,90,90,.08)"}}>
+          <strong style={{color:"#ff8585"}}><Ico n="warn" size={16}/> Behind this door:</strong> what you type can be stored and used to
+          train the model for everyone. You can reduce this (see <em>Data Privacy</em>), but it's on by default.
+        </div>
+      )}
+      {door==="enterprise" && (
+        <div className="verdict" style={{borderColor:theme.col,color:"#d8ffe6",background:"rgba(134,242,173,.06)"}}>
+          <strong style={{color:theme.col}}><Ico n="check" size={16}/> Behind this door:</strong> under the university's enterprise
+          agreement, your prompts stay private and are not used for training. Same tool — protected terms.
+        </div>
+      )}
+
+      <div className="grid2">
+        {ENTERPRISE.map((t,i)=>(
+          <div className="card" key={i} style={{color:theme.col}}>
+            <h3><Ico n={t.icon} size={20} style={{color:theme.col}}/> {t.name}</h3>
+            <span className="pill" style={{color:t.available?theme.col:"var(--cream-dim)",marginTop:8,display:"inline-flex"}}>
+              {t.available ? <><Ico n="check" size={13}/> Available now</> : <><Ico n="lamp" size={13}/> Coming soon</>}
+            </span>
+            <p>{t.note}</p>
+            <ul>{t.pts.map((p,j)=><li key={j} style={{color:"var(--cream-soft)"}}><span className="b" style={{color:theme.col}}><Ico n="check" size={14}/></span>{p}</li>)}</ul>
+          </div>
+        ))}
+      </div>
+      <div className="callout"><strong>The catch:</strong> protection comes from signing in with your <em>university</em> account.
+        The same app on a personal login does not have it.</div>
+    </div>
+  );
+}
+
+function PrivacyScene({theme,done,toggle,revealed,setRevealed,enterAns,setEnterAns,personalAns,setPersonalAns,surprise,setSurprise}){
+  const dc = OPTOUT.filter((_,i)=>done[i]).length;
+  const pct = Math.round(dc/OPTOUT.length*100);
+  return (
+    <div className="scene" style={{color:theme.col}}>
+      <SceneHead theme={theme}/>
+      <p className="scene-intro">On a personal account, your words can quietly become training data. Two moves take back control:
+        switch off the harvest, then see for yourself what a model already remembers about you.</p>
+
+      <div className="card" style={{color:theme.col,marginTop:18}}>
+        <h3><Ico n="toggle" size={20} style={{color:theme.col}}/> Turn off ChatGPT's data harvesting</h3>
+        <ul className="steps" style={{margin:"12px 0 0"}}>
+          {OPTOUT.map((s,i)=>(
+            <li key={i} className={done[i]?"done":""} style={{color:theme.col}} onClick={()=>toggle(i)}>
+              <span className="chk"><Ico n="check" size={15}/></span>
+              <span><strong style={{color:"var(--cream)"}}><Ico n={s.icon} size={15} style={{color:theme.col,verticalAlign:"-2px",marginRight:6}}/>{s.t}</strong><span className="sd">{s.d}</span></span>
+            </li>
+          ))}
+        </ul>
+        <div className="bar" style={{color:theme.col}}><i style={{width:pct+"%"}}></i></div>
+        <div className="barlbl">{dc} of {OPTOUT.length} steps · {pct}%</div>
+      </div>
+
+      <div className="card" style={{color:theme.col,marginTop:14}}>
+        <h3><Ico n="eye" size={20} style={{color:theme.col}}/> Ask the AI: “What do you know about me?”</h3>
+        <p>Try it in both a protected account and your personal ChatGPT. Reveal the typical difference, then record yours.</p>
+        <div className="compare">
+          <div className="device">
+            <div className="top"><Ico n="shield" size={14} style={{color:theme.col}}/> Enterprise account</div>
+            <div className="scr">
+              <div className="bub me">What do you know about me?</div>
+              <div className="bub">I don't have any information about you.</div>
+              <div className={"rev "+(revealed?"show":"")}><b>→ Knows: nothing.</b></div>
+            </div>
+          </div>
+          <div className="device">
+            <div className="top"><Ico n="finger" size={14} style={{color:"#ff8585"}}/> Personal ChatGPT</div>
+            <div className="scr">
+              <div className="bub me">What do you know about me?</div>
+              <div className="bub">Based on our chats, you study ___, you've mentioned ___, you tend to ___…</div>
+              <div className={"rev "+(revealed?"show":"")}><b>→ Often knows: a lot.</b></div>
+            </div>
+          </div>
+        </div>
+        {!revealed && <div className="btn-row no-print"><button className="btn" style={{marginTop:14}} onClick={()=>setRevealed(true)}><Ico n="eye" size={16}/> Reveal the difference</button></div>}
+        <label className="fld"><span>What did the <b>enterprise tool</b> know about you?</span>
+          <textarea value={enterAns} onChange={e=>setEnterAns(e.target.value)} placeholder="e.g. “Nothing — it had no profile of me.”"/></label>
+        <label className="fld"><span>What did your <b>personal ChatGPT</b> know?</span>
+          <textarea value={personalAns} onChange={e=>setPersonalAns(e.target.value)} placeholder="e.g. “It remembered my major and things I typed weeks ago…”"/></label>
+        <label className="fld"><span>What surprised you?</span>
+          <textarea value={surprise} onChange={e=>setSurprise(e.target.value)} placeholder="Did anything make you uncomfortable?"/></label>
+      </div>
+      <div className="callout"><strong>Note:</strong> menus change, and the toggle only covers your account going forward. For sensitive
+        material, prefer an enterprise account over a personal one with training switched off.</div>
+    </div>
+  );
+}
+
+function CopyrightScene({theme,flips,toggleFlip,copyWho,setCopyWho}){
+  return (
+    <div className="scene" style={{color:theme.col}}>
+      <SceneHead theme={theme}/>
+      <p className="scene-intro">AI models are trained on oceans of creative work — often scraped without permission. Before you
+        upload something, ask whose work it really is. Tap each card to see whether it's yours to share.</p>
+
+      <div className="flipgrid">
+        {COPYRIGHT_CARDS.map((c,i)=>(
+          <div key={i} className={"flip "+(flips[i]?"on":"")} onClick={()=>toggleFlip(i)}>
+            <div className="flip-in">
+              <div className="flip-face flip-front" style={{color:theme.col}}>
+                <Ico n={c.icon} size={34} style={{color:theme.col}}/>
+                <span className="ft">{c.t}</span>
+                <span className="hint">tap to reveal</span>
+              </div>
+              <div className="flip-face flip-back">
+                <span className={"vh "+(c.verdict==="ok"?"ok":c.verdict==="no"?"no":"dep")}>
+                  <Ico n={c.verdict==="ok"?"check":c.verdict==="no"?"warn":"scroll"} size={16}/>
+                  {c.vt}
+                </span>
+                <p>{c.d}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card" style={{color:theme.col,marginTop:16}}>
+        <h3><Ico n="quill" size={20} style={{color:theme.col}}/> Make it personal</h3>
+        <p>Think of something <em>you</em> made — an essay, a drawing, a song, a photo.</p>
+        <label className="fld"><span>How would you feel if it were used to train an AI without anyone asking you?</span>
+          <textarea value={copyWho} onChange={e=>setCopyWho(e.target.value)} placeholder="Would it matter if you were credited? Paid? Asked first?"/></label>
+      </div>
+      <div className="callout"><strong>The throughline:</strong> the care you'd want for your own work is what every creator wants for theirs.</div>
+    </div>
+  );
+}
+
+function ConsentScene({theme,conds,toggleCond,feel,setFeel,feelWhy,setFeelWhy}){
+  const metCount = conds.filter(Boolean).length;
+  const feelLabel = feel<=15?"“Totally fine — I wouldn't mind.”":feel<=40?"“A little uneasy, but probably okay.”":
+    feel<=60?"“Mixed — it depends on the why and the how.”":feel<=85?"“Uncomfortable — I'd want to be asked first.”":
+    "“Not okay — that's my work and my choice.”";
+  return (
+    <div className="scene" style={{color:theme.col}}>
+      <SceneHead theme={theme}/>
+      <p className="scene-intro">Most people shrug about uploading <em>someone else's</em> content — until it's <em>theirs</em>.
+        That flip is the whole point. Start with the question that tends to change the conversation.</p>
+
+      <div className="card" style={{marginTop:18,borderColor:"rgba(134,242,173,.3)"}}>
+        <p style={{margin:0,fontSize:18,fontFamily:"var(--serif)",color:"#d8ffe6",lineHeight:1.5}}>
+          “How would you feel if <strong>I</strong>, your professor, uploaded <strong>your</strong> writing into an AI to summarize or grade it?”
+        </p>
+        <div className="feel" style={{color:theme.col,marginTop:16}}>
+          <input type="range" min="0" max="100" value={feel} onChange={e=>setFeel(+e.target.value)} aria-label="How would you feel"/>
+          <div className="feel-scale"><span>Totally fine</span><span>Depends</span><span>Not okay</span></div>
+          <div className="feel-out" style={{color:feel>60?"#ff9e9e":feel<40?theme.col:"var(--amber)"}}>{feelLabel}</div>
+        </div>
+        <label className="fld"><span>Why did you land there? What would make it okay — or not?</span>
+          <textarea value={feelWhy} onChange={e=>setFeelWhy(e.target.value)} placeholder="Consent? Being asked first? The purpose? Who sees it after?"/></label>
+      </div>
+
+      <div className="card" style={{color:theme.col,marginTop:14}}>
+        <h3><Ico n="consent" size={20} style={{color:theme.col}}/> The four conditions of informed consent</h3>
+        <p>Pick a tool you actually use. Check each condition it genuinely meets.</p>
+        <div className="conds">
+          {CONDS.map((c,i)=>(
+            <div key={i} className={"cond "+(conds[i]?"met":"")} onClick={()=>toggleCond(i)}>
+              <span className="cc"><Ico n="check" size={14}/></span>
+              <div><strong><Ico n={c.icon} size={14} style={{color:theme.col,verticalAlign:"-2px",marginRight:6}}/>{c.t}</strong><span>{c.d}</span></div>
+            </div>
+          ))}
+        </div>
+        <div className="consent-verdict" style={{borderColor:metCount>=3?theme.col:"var(--amber)"}}>
+          {metCount===4
+            ? <span><b style={{color:theme.col}}>All four met.</b> That's what genuine informed consent looks like — rare, and worth expecting.</span>
+            : <span><b style={{color:"var(--amber)"}}>{metCount} of 4 met.</b> When any are missing, a click to “Accept” isn't really <em>informed</em> consent — it's just consent in name.</span>}
+        </div>
+      </div>
+      <div className="callout"><strong>Carry it forward:</strong> the same care you'd want for your own writing is what you owe a classmate's
+        draft, an interviewee's words, or a professor's materials.</div>
+    </div>
+  );
+}
+
+/* ============================ APP ============================ */
+function App(){
+  const s = load();
+  const [index,setIndex]   = useState(0);
+  const [name,setName]     = useState(s.name||"");
+  const [door,setDoor]     = useState(s.door||"");
+  const [done,setDone]     = useState(s.done||{});
+  const [revealed,setRevealed]=useState(false);
+  const [enterAns,setEnterAns]=useState(s.enterAns||"");
+  const [personalAns,setPersonalAns]=useState(s.personalAns||"");
+  const [surprise,setSurprise]=useState(s.surprise||"");
+  const [flips,setFlips]   = useState(s.flips||{});
+  const [copyWho,setCopyWho]=useState(s.copyWho||"");
+  const [conds,setConds]   = useState(s.conds||[false,false,false,false]);
+  const [feel,setFeel]     = useState(s.feel!=null?s.feel:50);
+  const [feelWhy,setFeelWhy]=useState(s.feelWhy||"");
+  const [pledge,setPledge] = useState(s.pledge||"");
+  const [adviceTab,setAdviceTab]=useState("student");
+  const [flash,setFlash]   = useState(false);
+
+  useEffect(()=>{
+    try{localStorage.setItem(STORE_KEY,JSON.stringify({name,door,done,enterAns,personalAns,surprise,flips,copyWho,conds,feel,feelWhy,pledge}));}catch(e){}
+    setFlash(true);const t=setTimeout(()=>setFlash(false),900);return ()=>clearTimeout(t);
+  },[name,door,done,enterAns,personalAns,surprise,flips,copyWho,conds,feel,feelWhy,pledge]);
+
+  const theme = THEMES[index];
+  const toggleStep = i => setDone(d=>({...d,[i]:!d[i]}));
+  const toggleFlip = i => setFlips(f=>({...f,[i]:!f[i]}));
+  const toggleCond = i => setConds(c=>c.map((v,j)=>j===i?!v:v));
+
+  const exportHTML = () => {
+    const today=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
+    const steps=OPTOUT.map((o,i)=>`<li>${done[i]?"☑":"☐"} ${esc(o.t)}</li>`).join("");
+    const condList=CONDS.map((c,i)=>`<li>${conds[i]?"☑":"☐"} ${esc(c.t)} — ${esc(c.d)}</li>`).join("");
+    const feelLabel = feel<=15?"Totally fine":feel<=40?"A little uneasy":feel<=60?"Mixed / depends":feel<=85?"Uncomfortable":"Not okay";
+    const doc=`<!doctype html><html><head><meta charset="utf-8"><title>Ethical AI Shadow Play — ${esc(name||"My Responses")}</title>
+<style>body{font-family:Georgia,serif;max-width:740px;margin:40px auto;padding:0 22px;line-height:1.6;color:#1c1810}
+h1{font-family:system-ui,sans-serif;font-size:27px;margin-bottom:2px;color:#9a6b1f}
+.meta{color:#666;font-family:system-ui,sans-serif;font-size:14px;margin-bottom:24px}
+h2{font-family:system-ui,sans-serif;font-size:17px;margin:26px 0 6px;border-left:5px solid #e0a33c;padding-left:10px}
+.resp{white-space:pre-wrap;background:#faf5ea;border:1px solid #ece0c8;padding:12px 14px;border-radius:10px;margin:6px 0}
+.empty{color:#999;font-style:italic}ul{padding-left:18px}
+footer{margin-top:40px;font-size:12px;color:#888;font-family:system-ui,sans-serif;border-top:1px solid #ddd;padding-top:14px}</style>
+</head><body>
+<h1>Ethical AI Shadow Play — A Carousel of Choice</h1>
+<div class="meta">${esc(name||"Anonymous")} · ${today}</div>
+<h2>AI Agency · the door I'd choose</h2><div class="resp ${door?"":"empty"}">${door?esc(door==="enterprise"?"Enterprise account (protected)":"Personal account"):"(not chosen)"}</div>
+<h2>Data Privacy · my opt-out checklist</h2><ul>${steps}</ul>
+<h2>What the enterprise AI knew about me</h2><div class="resp ${enterAns?"":"empty"}">${enterAns?esc(enterAns):"(not answered)"}</div>
+<h2>What my personal ChatGPT knew</h2><div class="resp ${personalAns?"":"empty"}">${personalAns?esc(personalAns):"(not answered)"}</div>
+<h2>What surprised me</h2><div class="resp ${surprise?"":"empty"}">${surprise?esc(surprise):"(not answered)"}</div>
+<h2>Artistic Copyright · my own work</h2><div class="resp ${copyWho?"":"empty"}">${copyWho?esc(copyWho):"(not answered)"}</div>
+<h2>Informed Consent · the reframe</h2><div class="resp">My reaction: ${feel}/100 — ${esc(feelLabel)}</div>
+<div class="resp ${feelWhy?"":"empty"}">${feelWhy?esc(feelWhy):"(not answered)"}</div>
+<h2>The four conditions of consent (for a tool I use)</h2><ul>${condList}</ul>
+<h2>What I'll do differently</h2><div class="resp ${pledge?"":"empty"}">${pledge?esc(pledge):"(not answered)"}</div>
+<footer>“Ethical AI Shadow Play: A Carousel of Choice” — an interactive classroom guide created by Marc Watkins.
+Generated from the student's own responses. Built with the help of an AI assistant (Claude).</footer>
+</body></html>`;
+    const blob=new Blob([doc],{type:"text/html"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download="ethical-ai-shadow-play"+(name?"-"+name.replace(/[^a-z0-9]+/gi,"-").toLowerCase():"")+".html";
+    document.body.appendChild(a);a.click();a.remove();
+  };
+  const resetAll = () => {
+    if(!window.confirm("Clear all your saved responses on this device?"))return;
+    try{localStorage.removeItem(STORE_KEY);}catch(e){}
+    setName("");setDoor("");setDone({});setEnterAns("");setPersonalAns("");setSurprise("");
+    setFlips({});setCopyWho("");setConds([false,false,false,false]);setFeel(50);setFeelWhy("");setPledge("");
+  };
+
+  return (
+    <div className="wrap">
+      <header className="site">
+        <div className="kicker">An Interactive Shadow Play</div>
+        <h1 className="title">Ethical AI Shadow Play: <span className="amber">A Carousel of Choice</span></h1>
+        <p className="lede">Step into the lamplight. Rotate the carousel to move between four questions every AI user faces —
+          and leave with choices you can actually defend.</p>
+        <div className="ai-chip"><Ico n="lamp" size={14}/> AI-assisted resource · made transparent on purpose</div>
+        <div className="attribution">
+          Created by <strong>Marc Watkins</strong> for classroom use. Built with the help of an AI assistant (Claude);
+          all guidance reflects the author's framing. Confirm your institution's specific agreements with your IT/help desk.
+        </div>
+      </header>
+
+      <Carousel onActive={setIndex}/>
+
+      {index===0 && <AgencyScene theme={theme} door={door} setDoor={setDoor}/>}
+      {index===1 && <PrivacyScene theme={theme} done={done} toggle={toggleStep} revealed={revealed} setRevealed={setRevealed}
+        enterAns={enterAns} setEnterAns={setEnterAns} personalAns={personalAns} setPersonalAns={setPersonalAns} surprise={surprise} setSurprise={setSurprise}/>}
+      {index===2 && <CopyrightScene theme={theme} flips={flips} toggleFlip={toggleFlip} copyWho={copyWho} setCopyWho={setCopyWho}/>}
+      {index===3 && <ConsentScene theme={theme} conds={conds} toggleCond={toggleCond} feel={feel} setFeel={setFeel} feelWhy={feelWhy} setFeelWhy={setFeelWhy}/>}
+
+      {/* PLAYBILL — always visible */}
+      <section className="bill">
+        <h2><Ico n="book" size={22} style={{color:"var(--amber)"}}/> Deep dives on AI, privacy &amp; rights</h2>
+        <p className="sub">Primary sources and trusted explainers — read at least one before you finish.</p>
+        <div style={{marginTop:12}}>
+          {READINGS.map((r,i)=>(
+            <div className="reading" key={i}>
+              <span style={{color:"var(--amber)"}}><Ico n={r.icon} size={20}/></span>
+              <div>
+                <div className="src">{r.src}</div>
+                <a href={r.url} target="_blank" rel="noopener">{r.title} ↗</a>
+                <p>{r.why}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="bill">
+        <h2><Ico n="hand" size={22} style={{color:"var(--amber)"}}/> Practical advice</h2>
+        <div className="toggle-tabs no-print">
+          <button className={adviceTab==="student"?"on":""} onClick={()=>setAdviceTab("student")}>For students</button>
+          <button className={adviceTab==="faculty"?"on":""} onClick={()=>setAdviceTab("faculty")}>For faculty</button>
+        </div>
+        <ul className="advice">
+          {ADVICE[adviceTab].map((a,i)=>(
+            <li key={i}><span style={{color:"var(--amber)"}}><Ico n={a.icon} size={18}/></span><span>{a.t}</span></li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="bill">
+        <h2><Ico n="scroll" size={22} style={{color:"var(--amber)"}}/> Save or submit your responses</h2>
+        <p className="sub">Everything stays on your device until you export it.</p>
+        <label className="fld"><span>One last reflection — what will you do differently after this?</span>
+          <textarea value={pledge} onChange={e=>setPledge(e.target.value)} placeholder="e.g. “Use the enterprise account for coursework and turn off training on my personal ChatGPT.”"/></label>
+        <label className="fld" style={{maxWidth:380}}><span>Your name (optional, for the export)</span>
+          <input className="txt" value={name} onChange={e=>setName(e.target.value)} placeholder="Name"/></label>
+        <div className="btn-row no-print" style={{marginTop:20}}>
+          <button className="btn" onClick={()=>window.print()}><Ico n="doc" size={16}/> Print / Save as PDF</button>
+          <button className="btn primary" onClick={exportHTML}><Ico n="check" size={16}/> Download as HTML</button>
+        </div>
+        <div className="no-print" style={{textAlign:"center",marginTop:14}}>
+          <button className="btn ghost" style={{fontSize:13,opacity:.7}} onClick={resetAll}>Clear my responses</button>
+        </div>
+      </section>
+
+      <footer className="site">
+        <div><strong>Ethical AI Shadow Play: A Carousel of Choice</strong> — created by <strong>Marc Watkins</strong>.</div>
+        <p className="disclosure">
+          This interactive resource was built for classroom use by Marc Watkins with the help of an AI assistant (Claude).
+          Guidance reflects the author's framing for an educational setting; product menus and institutional agreements change —
+          confirm specifics with your IT/help desk and the linked primary sources. Responses are stored only in your browser's
+          local storage until you choose to export them.
+        </p>
+      </footer>
+
+      {flash && <div className="saved-pill no-print"><Ico n="check" size={12} style={{verticalAlign:"-1px",marginRight:5}}/>Saved on this device</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
